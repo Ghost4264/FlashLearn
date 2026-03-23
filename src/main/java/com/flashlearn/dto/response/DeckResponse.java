@@ -1,0 +1,58 @@
+package com.flashlearn.dto.response;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
+
+/**
+ * Ответ с данными колоды карточек
+ */
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class DeckResponse {
+
+    /**
+     * Уникальный идентификатор колоды
+     */
+    private Long id;
+
+    /**
+     * Название колоды
+     */
+    private String title;
+
+    /**
+     * Описание колоды
+     */
+    private String description;
+
+    /**
+     * Флаг публичности
+     */
+    private boolean isPublic;
+
+    /**
+     * Кол-во карточек в этой колоде
+     */
+    private int cardCount;
+
+    /**
+     * Количество карточек которые пора повторить прямо сейчас
+     */
+    private long dueCardCount;
+
+    /**
+     * Дата и время создания колоды
+     */
+    private LocalDateTime createdAt;
+
+    /**
+     * Дата и время последнего изменения
+     */
+    private LocalDateTime updatedAt;
+}
