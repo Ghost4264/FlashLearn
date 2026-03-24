@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState } from 'react'
 import { api } from '../lib/api'
 import { useAuthStore } from '../store/authStore'
 import type { Deck, PageResponse } from '../types/api'
@@ -50,8 +50,7 @@ export function DecksPage() {
     }
   }, [])
 
-  const createDeck = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
-    event.preventDefault()
+  const createDeck = async (): Promise<void> => {
     try {
       await api.post('/api/decks', {
         title,
@@ -82,7 +81,13 @@ export function DecksPage() {
 
       {error ? <p className="mb-4 text-red-600">{error}</p> : null}
 
-      <form onSubmit={createDeck} className="mb-6 grid gap-2 rounded-lg bg-white p-4 shadow-sm md:grid-cols-4">
+      <form
+        onSubmit={(event) => {
+          event.preventDefault()
+          void createDeck()
+        }}
+        className="mb-6 grid gap-2 rounded-lg bg-white p-4 shadow-sm md:grid-cols-4"
+      >
         <input
           className="rounded border border-slate-300 px-3 py-2 md:col-span-2"
           placeholder="Название колоды"
@@ -98,7 +103,8 @@ export function DecksPage() {
         />
         <label className="flex items-center gap-2 text-sm">
           <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} />
-          Публичная
+          {' '}
+          <span>Публичная</span>
         </label>
         <button className="rounded bg-slate-900 px-3 py-2 text-white md:col-span-4">Создать колоду</button>
       </form>

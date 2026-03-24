@@ -22,17 +22,17 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config as RetryableConfig | undefined
     if (!originalRequest) {
-      return Promise.reject(error)
+      throw error
     }
 
     if (error.response?.status !== 401 || originalRequest._retry) {
-      return Promise.reject(error)
+      throw error
     }
 
     const store = useAuthStore.getState()
     if (!store.refreshToken) {
       store.clearTokens()
-      return Promise.reject(error)
+      throw error
     }
 
     originalRequest._retry = true
@@ -45,7 +45,7 @@ api.interceptors.response.use(
       return api(originalRequest)
     } catch (refreshError) {
       store.clearTokens()
-      return Promise.reject(refreshError)
+      throw refreshError
     }
   },
 )

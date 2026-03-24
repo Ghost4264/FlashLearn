@@ -14,6 +14,8 @@ import com.flashlearn.service.impl.ReviewServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -122,57 +124,21 @@ class ReviewServiceImplTest {
 
     // ─── easeFactor растёт при хорошем ответе ─────────────────────────────────
 
-    @Test
-    void perfectAnswer_easeFactorIncreases() {
-        ReviewProgress p = freshProgress(); // EF = 2.5
-
-        submitWith(5, p);
-
-        // EF' = 2.5 + (0.1 - 0 * (0.08 + 0 * 0.02)) = 2.5 + 0.1 = 2.6
-        assertThat(p.getEaseFactor()).isCloseTo(2.6, within(0.001));
-    }
-
-    @Test
-    void goodAnswer_easeFactorSlightlyIncreases() {
-        ReviewProgress p = freshProgress(); // EF = 2.5
-
-        submitWith(4, p);
-
-        // EF' = 2.5 + (0.1 - 1 * (0.08 + 1 * 0.02)) = 2.5 + 0.0 = 2.5
-        assertThat(p.getEaseFactor()).isCloseTo(2.5, within(0.001));
-    }
-
-    @Test
-    void hardAnswer_easeFactorDecreases() {
-        ReviewProgress p = freshProgress(); // EF = 2.5
-
-        submitWith(3, p);
-
-        // EF' = 2.5 + (0.1 - 2 * (0.08 + 2 * 0.02)) = 2.5 - 0.14 = 2.36
-        assertThat(p.getEaseFactor()).isCloseTo(2.36, within(0.001));
-    }
-
-    // ─── easeFactor снижается при НЕПРАВИЛЬНОМ ответе (баг до фикса) ──────────
-
-    @Test
-    void wrongAnswer_easeFactorAlsoDecreases() {
-        ReviewProgress p = freshProgress(); // EF = 2.5
-
-        submitWith(2, p); // quality < 3 → неправильный
-
-        // EF' = 2.5 + (0.1 - 3 * (0.08 + 3 * 0.02)) = 2.5 - 0.38 = 2.12
-        assertThat(p.getEaseFactor()).isCloseTo(2.12, within(0.001));
-    }
-
-    @Test
-    void blackoutAnswer_easeFactorDropsToMinimum() {
+    @ParameterizedTest
+    @CsvSource({
+            "5,2.5,2.6",
+            "4,2.5,2.5",
+            "3,2.5,2.36",
+            "2,2.5,2.18",
+            "0,1.4,1.3"
+    })
+    void easeFactor_changesAsExpected(int quality, double initialEaseFactor, double expectedEaseFactor) {
         ReviewProgress p = freshProgress();
-        p.setEaseFactor(1.4); // чуть выше минимума
+        p.setEaseFactor(initialEaseFactor);
 
-        submitWith(0, p); // полный провал
+        submitWith(quality, p);
 
-        // EF' = 1.4 + (0.1 - 5 * (0.08 + 5 * 0.02)) = 1.4 - 2.4 = -1.0 → bounded at 1.3
-        assertThat(p.getEaseFactor()).isEqualTo(1.3);
+        assertThat(p.getEaseFactor()).isCloseTo(expectedEaseFactor, within(0.001));
     }
 
     // ─── Сброс прогресса при неправильном ответе ──────────────────────────────
@@ -185,8 +151,8 @@ class ReviewServiceImplTest {
 
         submitWith(1, p);
 
-        assertThat(p.getRepetitions()).isEqualTo(0);
-        assertThat(p.getIntervalDays()).isEqualTo(1);
+        assertThat(p.getRepetitions()).isZero();
+        assertThat(p.getIntervalDays()).isOne();
     }
 
     // ─── nextReviewAt устанавливается корректно ────────────────────────────────
@@ -238,10 +204,11 @@ class ReviewServiceImplTest {
         ReviewRequest request = new ReviewRequest();
         request.setCardId(999L);
         request.setQuality(4);
+        Long userId = user.getId();
 
         when(cardRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> reviewService.submitReview(request, user.getId()))
+        assertThatThrownBy(() -> reviewService.submitReview(request, userId))
                 .isInstanceOf(ResourceNotFoundException.class);
     }
 }

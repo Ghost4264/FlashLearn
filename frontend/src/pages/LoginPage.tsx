@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useAuthStore } from '../store/authStore'
@@ -12,8 +12,7 @@ export function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  const onSubmit = async (event: FormEvent<HTMLFormElement>): Promise<void> => {
-    event.preventDefault()
+  const onSubmit = async (): Promise<void> => {
     setError(null)
     setLoading(true)
     try {
@@ -30,7 +29,13 @@ export function LoginPage() {
   return (
     <div className="mx-auto mt-12 max-w-md rounded-xl bg-white p-6 shadow-sm">
       <h1 className="mb-4 text-2xl font-semibold">Вход в FlashLearn</h1>
-      <form className="space-y-3" onSubmit={onSubmit}>
+      <form
+        className="space-y-3"
+        onSubmit={(event) => {
+          event.preventDefault()
+          void onSubmit()
+        }}
+      >
         <input
           className="w-full rounded border border-slate-300 px-3 py-2"
           type="email"
