@@ -1,8 +1,8 @@
 package com.flashlearn.controller;
 
 import com.flashlearn.dto.request.ReviewRequest;
-import com.flashlearn.dto.response.CardResponse;
 import com.flashlearn.dto.response.ReviewResponse;
+import com.flashlearn.dto.response.StudyCardResponse;
 import com.flashlearn.entity.User;
 import com.flashlearn.service.ReviewService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -34,12 +35,18 @@ public class ReviewController {
 
     /**
      * Получить список карточек, которые пора повторить сегодня
+     * Если передан deckId — только из этой колоды
      */
-    @Operation(summary = "Карточки к повторению", description = "Возвращает карточки у которых nextReviewAt <= now")
+    @Operation(summary = "Карточки к повторению", description = "Возвращает карточки у которых nextReviewAt <= now. Опционально фильтрует по deckId.")
     @ApiResponse(responseCode = "200", description = "Список карточек")
     @GetMapping("/due")
-    public ResponseEntity<List<CardResponse>> getDueCards(@AuthenticationPrincipal User user) {
-        return ResponseEntity.ok(reviewService.getDueCards(user.getId()));
+    public ResponseEntity<List<StudyCardResponse>> getDueCards(
+            @AuthenticationPrincipal User user,
+            @RequestParam(required = false) Long deckId) {
+        List<StudyCardResponse> cards = deckId != null
+                ? reviewService.getDueCardsByDeck(user.getId(), deckId)
+                : reviewService.getDueCards(user.getId());
+        return ResponseEntity.ok(cards);
     }
 
     /**

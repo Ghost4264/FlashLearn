@@ -23,6 +23,17 @@ public interface ReviewProgressRepository extends JpaRepository<ReviewProgress, 
                                       @Param("now") LocalDateTime now);
 
     @Query("""
+            SELECT rp FROM ReviewProgress rp
+            WHERE rp.user.id = :userId
+              AND rp.card.deck.id = :deckId
+              AND rp.nextReviewAt <= :now
+            ORDER BY rp.nextReviewAt ASC
+            """)
+    List<ReviewProgress> findDueCardsByDeck(@Param("userId") Long userId,
+                                            @Param("deckId") Long deckId,
+                                            @Param("now") LocalDateTime now);
+
+    @Query("""
             SELECT COUNT(rp) FROM ReviewProgress rp
             WHERE rp.user.id = :userId
               AND rp.nextReviewAt <= :now

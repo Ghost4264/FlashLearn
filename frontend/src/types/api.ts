@@ -4,6 +4,11 @@ export type AuthResponse = {
   tokenType: string
 }
 
+export type Category = {
+  id: number
+  name: string
+}
+
 export type Deck = {
   id: number
   title: string
@@ -11,6 +16,8 @@ export type Deck = {
   cardCount: number
   dueCardCount: number
   public: boolean
+  categoryId: number | null
+  categoryName: string | null
 }
 
 export type PageResponse<T> = {
@@ -20,4 +27,50 @@ export type PageResponse<T> = {
   totalElements: number
   totalPages: number
   last: boolean
+}
+
+export type Card = {
+  id: number
+  deckId: number
+  front: string
+  back: string
+  hint: string | null
+  position: number
+  createdAt: string
+  updatedAt: string
+}
+
+export type StudyCard = Card & {
+  isNew: boolean
+}
+
+export type ReviewResponse = {
+  cardId: number
+  intervalDays: number
+  easeFactor: number
+  nextReviewAt: string
+}
+
+export type UserProfile = {
+  id: number
+  email: string
+  name: string | null
+  role: string
+  createdAt: string
+  updatedAt: string
+}
+
+export type StudySettings = {
+  newCardsPerSession: number
+  intervalModifier: number
+}
+
+export type AdminDeckImportResponse = {
+  deck: Deck
+  importedCards: number
+}
+
+export type AdminBulkDeckResponse = {
+  decksCreated: number
+  cardsCreated: number
 }

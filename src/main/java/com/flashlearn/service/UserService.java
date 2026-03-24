@@ -1,7 +1,9 @@
 package com.flashlearn.service;
 
 import com.flashlearn.dto.request.ChangePasswordRequest;
+import com.flashlearn.dto.request.UpdateStudySettingsRequest;
 import com.flashlearn.dto.request.UpdateUserRequest;
+import com.flashlearn.dto.response.StudySettingsResponse;
 import com.flashlearn.dto.response.UserResponse;
 
 public interface UserService {
@@ -20,4 +22,8 @@ public interface UserService {
      * Сменить пароль — проверяет текущий пароль перед обновлением
      */
     void changePassword(Long userId, ChangePasswordRequest request);
+
+    StudySettingsResponse getStudySettings(Long userId);
+
+    StudySettingsResponse updateStudySettings(Long userId, UpdateStudySettingsRequest request);
 }

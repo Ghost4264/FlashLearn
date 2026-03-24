@@ -195,6 +195,7 @@ class CardControllerTest extends BaseControllerTest {
                 .title(title)
                 .description("")
                 .isPublic(false)
+                .category(ensureDefaultCategory(user))
                 .build());
     }
 
@@ -205,5 +206,15 @@ class CardControllerTest extends BaseControllerTest {
                 .back(back)
                 .position(position)
                 .build());
+    }
+
+    private com.flashlearn.entity.Category ensureDefaultCategory(User user) {
+        return categoryRepository.findAllByUserIdOrderByName(user.getId())
+                .stream()
+                .findFirst()
+                .orElseGet(() -> categoryRepository.save(com.flashlearn.entity.Category.builder()
+                        .user(user)
+                        .name("Разное")
+                        .build()));
     }
 }

@@ -138,12 +138,97 @@ class ReviewControllerTest extends BaseControllerTest {
                 .andExpect(status().isNotFound());
     }
 
+    @Test
+    void getDueCards_includesNewCardsWithoutProgress() throws Exception {
+        String token = createUserAndGetToken("user@example.com", "User");
+        User user = userRepository.findByEmail("user@example.com").orElseThrow();
+        Deck deck = createDeck(user);
+        createCard(deck, "Новая карточка без прогресса");
+
+        mockMvc.perform(get("/api/review/due")
+                        .header("Authorization", authHeader(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].front").value("Новая карточка без прогресса"));
+    }
+
+    @Test
+    void getDueCards_returnsDueAndNewCardsTogether() throws Exception {
+        String token = createUserAndGetToken("user@example.com", "User");
+        User user = userRepository.findByEmail("user@example.com").orElseThrow();
+        Deck deck = createDeck(user);
+
+        Card dueCard = createCard(deck, "Просроченная");
+        Card futureCard = createCard(deck, "Будущая");
+        createCard(deck, "Новая без прогресса");
+
+        createProgress(user, dueCard, LocalDateTime.now().minusDays(1));
+        createProgress(user, futureCard, LocalDateTime.now().plusDays(5));
+
+        mockMvc.perform(get("/api/review/due")
+                        .header("Authorization", authHeader(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)));
+    }
+
+    @Test
+    void getDueCount_includesNewCards() throws Exception {
+        String token = createUserAndGetToken("user@example.com", "User");
+        User user = userRepository.findByEmail("user@example.com").orElseThrow();
+        Deck deck = createDeck(user);
+
+        Card dueCard = createCard(deck, "Просроченная");
+        createCard(deck, "Новая 1");
+        createCard(deck, "Новая 2");
+
+        createProgress(user, dueCard, LocalDateTime.now().minusHours(1));
+
+        mockMvc.perform(get("/api/review/due/count")
+                        .header("Authorization", authHeader(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.count").value(3));
+    }
+
+    @Test
+    void getDueCards_withDeckId_returnsOnlyThatDeckCards() throws Exception {
+        String token = createUserAndGetToken("user@example.com", "User");
+        User user = userRepository.findByEmail("user@example.com").orElseThrow();
+
+        Deck deck1 = createDeck(user);
+        Deck deck2 = createDeck(user);
+
+        createCard(deck1, "Карточка колоды 1");
+        createCard(deck2, "Карточка колоды 2");
+
+        mockMvc.perform(get("/api/review/due?deckId=" + deck1.getId())
+                        .header("Authorization", authHeader(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].front").value("Карточка колоды 1"));
+    }
+
+    @Test
+    void getDueCards_newCardsFromOtherUserNotVisible() throws Exception {
+        createUserAndGetToken("other@example.com", "Other");
+        User otherUser = userRepository.findByEmail("other@example.com").orElseThrow();
+        Deck otherDeck = createDeck(otherUser);
+        createCard(otherDeck, "Чужая карточка");
+
+        String token = createUserAndGetToken("user@example.com", "User");
+
+        mockMvc.perform(get("/api/review/due")
+                        .header("Authorization", authHeader(token)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(0)));
+    }
+
     private Deck createDeck(User user) {
         return deckRepository.save(Deck.builder()
                 .user(user)
                 .title("Тестовая колода")
                 .description("")
                 .isPublic(false)
+                .category(ensureDefaultCategory(user))
                 .build());
     }
 
@@ -165,5 +250,15 @@ class ReviewControllerTest extends BaseControllerTest {
                 .repetitions(0)
                 .nextReviewAt(nextReviewAt)
                 .build());
+    }
+
+    private com.flashlearn.entity.Category ensureDefaultCategory(User user) {
+        return categoryRepository.findAllByUserIdOrderByName(user.getId())
+                .stream()
+                .findFirst()
+                .orElseGet(() -> categoryRepository.save(com.flashlearn.entity.Category.builder()
+                        .user(user)
+                        .name("Разное")
+                        .build()));
     }
 }

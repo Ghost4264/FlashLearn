@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -46,8 +47,10 @@ public class DeckController {
     @GetMapping
     public ResponseEntity<PageResponse<DeckResponse>> getMyDecks(
             @AuthenticationPrincipal User user,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) String q,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(deckService.getMyDecks(user.getId(), pageable));
+        return ResponseEntity.ok(deckService.getMyDecks(user.getId(), categoryId, q, pageable));
     }
 
     /**
@@ -58,8 +61,9 @@ public class DeckController {
     @SecurityRequirements
     @GetMapping("/public")
     public ResponseEntity<PageResponse<DeckResponse>> getPublicDecks(
+            @RequestParam(required = false) String q,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(deckService.getPublicDecks(pageable));
+        return ResponseEntity.ok(deckService.getPublicDecks(q, pageable));
     }
 
     /**
@@ -115,5 +119,19 @@ public class DeckController {
             @AuthenticationPrincipal User user) {
         deckService.delete(id, user.getId());
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * Клонировать публичную колоду в свою коллекцию
+     */
+    @Operation(summary = "Клонировать колоду", description = "Копирует публичную колоду и все карточки текущему пользователю")
+    @ApiResponse(responseCode = "201", description = "Колода склонирована")
+    @ApiResponse(responseCode = "403", description = "Колода не публичная")
+    @ApiResponse(responseCode = "404", description = "Колода не найдена")
+    @PostMapping("/{id}/clone")
+    public ResponseEntity<DeckResponse> clone(
+            @Parameter(description = "ID источника") @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(deckService.clone(id, user.getId()));
     }
 }

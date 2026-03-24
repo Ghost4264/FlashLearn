@@ -16,5 +16,7 @@ public interface DeckMapper {
      */
     @Mapping(target = "cardCount", ignore = true)
     @Mapping(target = "dueCardCount", ignore = true)
+    @Mapping(target = "categoryId", source = "category.id")
+    @Mapping(target = "categoryName", source = "category.name")
     DeckResponse toResponse(Deck deck);
 }

@@ -6,10 +6,13 @@ import com.flashlearn.dto.response.AuthResponse;
 import com.flashlearn.entity.RefreshToken;
 import com.flashlearn.entity.Role;
 import com.flashlearn.entity.User;
+import com.flashlearn.entity.Category;
 import com.flashlearn.exception.EmailAlreadyExistsException;
 import com.flashlearn.exception.InvalidTokenException;
 import com.flashlearn.repository.RefreshTokenRepository;
 import com.flashlearn.repository.UserRepository;
+import com.flashlearn.repository.CategoryRepository;
+import com.flashlearn.repository.CategoryPresetRepository;
 import com.flashlearn.security.JwtService;
 import com.flashlearn.service.AuthService;
 import lombok.RequiredArgsConstructor;
@@ -21,28 +24,31 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 /**
- * Реализация сервиса аутентификации.
- * Управляет регистрацией, входом, обновлением и отзывом токенов.
+ * Реализация сервиса аутентификации
  */
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
+    private final CategoryRepository categoryRepository;
+    private final CategoryPresetRepository categoryPresetRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final JwtService jwtService;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
+    private static final List<String> DEFAULT_CATEGORIES =
+            List.of("Java", "Языки", "Kotlin", "Docker", "Git", "Разное");
 
     @Value("${app.jwt.refresh-expiration-ms}")
     private long refreshExpirationMs;
 
     /**
-     * Регистрирует нового пользователя.
-     * Хэширует пароль, сохраняет пользователя и возвращает пару токенов.
+     * Регистрирует нового пользователя
      */
     @Override
     @Transactional
@@ -59,13 +65,12 @@ public class AuthServiceImpl implements AuthService {
                 .build();
 
         userRepository.save(user);
+        createDefaultCategories(user);
         return buildAuthResponse(user);
     }
 
     /**
-     * Выполняет вход в систему.
-     * Делегирует проверку логина/пароля AuthenticationManager,
-     * затем выдаёт пару токенов.
+     * Выполняет вход в систему
      */
     @Override
     @Transactional
@@ -110,7 +115,7 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /**
-     * Выход из системы — отзывает все refresh токены пользователя.
+     * Выход из системы — отзывает все refresh токены пользователя
      */
     @Override
     @Transactional
@@ -118,10 +123,8 @@ public class AuthServiceImpl implements AuthService {
         refreshTokenRepository.revokeAllByUserId(userId);
     }
 
-    // --- Вспомогательные методы ---
-
     /**
-     * Генерирует access + refresh токены и формирует ответ.
+     * Генерирует access + refresh токены и формирует ответ
      */
     private AuthResponse buildAuthResponse(User user) {
         String accessToken = jwtService.generateToken(user);
@@ -135,12 +138,9 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /**
-     * Создаёт и сохраняет новый refresh токен для пользователя.
-     * Перед созданием отзывает все предыдущие токены — один активный токен на пользователя.
+     * Создаёт и сохраняет новый refresh токен для пользователя
      */
     private String createRefreshToken(User user) {
-        // Отзываем старые токены при каждом новом логине
-        refreshTokenRepository.revokeAllByUserId(user.getId());
 
         String tokenValue = UUID.randomUUID().toString();
 
@@ -153,5 +153,19 @@ public class AuthServiceImpl implements AuthService {
 
         refreshTokenRepository.save(refreshToken);
         return tokenValue;
+    }
+
+    private void createDefaultCategories(User user) {
+        List<String> presetNames = categoryPresetRepository.findAllByOrderByNameAsc().stream()
+                .map(com.flashlearn.entity.CategoryPreset::getName)
+                .toList();
+        List<String> categoryNames = presetNames.isEmpty() ? DEFAULT_CATEGORIES : presetNames;
+        var categories = categoryNames.stream()
+                .map(name -> Category.builder()
+                        .user(user)
+                        .name(name)
+                        .build())
+                .toList();
+        categoryRepository.saveAll(categories);
     }
 }

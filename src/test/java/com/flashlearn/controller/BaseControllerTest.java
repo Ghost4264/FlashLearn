@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.flashlearn.entity.Role;
 import com.flashlearn.entity.User;
 import com.flashlearn.repository.CardRepository;
+import com.flashlearn.repository.CategoryRepository;
 import com.flashlearn.repository.DeckRepository;
 import com.flashlearn.repository.RefreshTokenRepository;
 import com.flashlearn.repository.ReviewProgressRepository;
@@ -44,6 +45,9 @@ public abstract class BaseControllerTest {
     protected CardRepository cardRepository;
 
     @Autowired
+    protected CategoryRepository categoryRepository;
+
+    @Autowired
     protected ReviewProgressRepository reviewProgressRepository;
 
     @Autowired
@@ -58,6 +62,7 @@ public abstract class BaseControllerTest {
         refreshTokenRepository.deleteAll();
         cardRepository.deleteAll();
         deckRepository.deleteAll();
+        categoryRepository.deleteAll();
         userRepository.deleteAll();
     }
 

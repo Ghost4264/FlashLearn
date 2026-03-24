@@ -83,6 +83,13 @@ public class Deck {
     private LocalDateTime updatedAt;
 
     /**
+     * Категория колоды (обязательна): Программирование, Языки, Математика и т.д.
+     */
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "category_id", nullable = false)
+    private Category category;
+
+    /**
      * Карточки в этой колоде
      * orphanRemoval — карточка удалённая из списка удаляется из БД
      */

@@ -55,4 +55,14 @@ public class DeckResponse {
      * Дата и время последнего изменения
      */
     private LocalDateTime updatedAt;
+
+    /**
+     * ID категории (null — без категории)
+     */
+    private Long categoryId;
+
+    /**
+     * Название категории (null — без категории)
+     */
+    private String categoryName;
 }

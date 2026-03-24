@@ -1,7 +1,9 @@
 package com.flashlearn.controller;
 
 import com.flashlearn.dto.request.ChangePasswordRequest;
+import com.flashlearn.dto.request.UpdateStudySettingsRequest;
 import com.flashlearn.dto.request.UpdateUserRequest;
+import com.flashlearn.dto.response.StudySettingsResponse;
 import com.flashlearn.dto.response.UserResponse;
 import com.flashlearn.entity.User;
 import com.flashlearn.service.UserService;
@@ -65,5 +67,19 @@ public class UserController {
             @AuthenticationPrincipal User user) {
         userService.changePassword(user.getId(), request);
         return ResponseEntity.noContent().build();
+    }
+
+    @Operation(summary = "Настройки повторений", description = "Возвращает персональные настройки интервального повторения")
+    @GetMapping("/me/study-settings")
+    public ResponseEntity<StudySettingsResponse> getStudySettings(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(userService.getStudySettings(user.getId()));
+    }
+
+    @Operation(summary = "Обновить настройки повторений", description = "Сохраняет персональные параметры интервального повторения")
+    @PutMapping("/me/study-settings")
+    public ResponseEntity<StudySettingsResponse> updateStudySettings(
+            @Valid @RequestBody UpdateStudySettingsRequest request,
+            @AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(userService.updateStudySettings(user.getId(), request));
     }
 }

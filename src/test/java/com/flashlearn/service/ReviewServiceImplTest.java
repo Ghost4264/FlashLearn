@@ -53,7 +53,6 @@ class ReviewServiceImplTest {
         card = Card.builder().id(10L).build();
     }
 
-    // ─── Вспомогательный метод ────────────────────────────────────────────────
 
     private ReviewProgress freshProgress() {
         return ReviewProgress.builder()
@@ -80,8 +79,6 @@ class ReviewServiceImplTest {
         return reviewService.submitReview(request, user.getId());
     }
 
-    // ─── Первое повторение (repetitions = 0) ──────────────────────────────────
-
     @Test
     void firstCorrectAnswer_intervalBecomesOne() {
         ReviewProgress p = freshProgress();
@@ -91,8 +88,6 @@ class ReviewServiceImplTest {
         assertThat(result.getIntervalDays()).isEqualTo(1);
         assertThat(p.getRepetitions()).isEqualTo(1);
     }
-
-    // ─── Второе повторение (repetitions = 1) ──────────────────────────────────
 
     @Test
     void secondCorrectAnswer_intervalBecomesSix() {
@@ -105,8 +100,6 @@ class ReviewServiceImplTest {
         assertThat(result.getIntervalDays()).isEqualTo(6);
         assertThat(p.getRepetitions()).isEqualTo(2);
     }
-
-    // ─── Третье повторение (repetitions = 2) ──────────────────────────────────
 
     @Test
     void thirdCorrectAnswer_intervalScalesWithEaseFactor() {
@@ -121,8 +114,6 @@ class ReviewServiceImplTest {
         assertThat(result.getIntervalDays()).isEqualTo(15);
         assertThat(p.getRepetitions()).isEqualTo(3);
     }
-
-    // ─── easeFactor растёт при хорошем ответе ─────────────────────────────────
 
     @ParameterizedTest
     @CsvSource({
@@ -141,8 +132,6 @@ class ReviewServiceImplTest {
         assertThat(p.getEaseFactor()).isCloseTo(expectedEaseFactor, within(0.001));
     }
 
-    // ─── Сброс прогресса при неправильном ответе ──────────────────────────────
-
     @Test
     void wrongAnswer_resetsRepetitionsAndInterval() {
         ReviewProgress p = freshProgress();
@@ -154,8 +143,6 @@ class ReviewServiceImplTest {
         assertThat(p.getRepetitions()).isZero();
         assertThat(p.getIntervalDays()).isOne();
     }
-
-    // ─── nextReviewAt устанавливается корректно ────────────────────────────────
 
     @Test
     void afterReview_nextReviewAtIsSetToFuture() {
@@ -178,8 +165,6 @@ class ReviewServiceImplTest {
         assertThat(p.getNextReviewAt()).isBefore(before.plusDays(2));
     }
 
-    // ─── Создаётся новый прогресс если не существует ──────────────────────────
-
     @Test
     void newCard_progressCreatedWithDefaults() {
         ReviewRequest request = new ReviewRequest();
@@ -196,8 +181,6 @@ class ReviewServiceImplTest {
 
         assertThat(result.getIntervalDays()).isEqualTo(1);
     }
-
-    // ─── Исключения ───────────────────────────────────────────────────────────
 
     @Test
     void unknownCard_throws404() {

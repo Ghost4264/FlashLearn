@@ -1,17 +1,22 @@
 package com.flashlearn.service;
 
 import com.flashlearn.dto.request.ReviewRequest;
-import com.flashlearn.dto.response.CardResponse;
 import com.flashlearn.dto.response.ReviewResponse;
+import com.flashlearn.dto.response.StudyCardResponse;
 
 import java.util.List;
 
 public interface ReviewService {
 
     /**
-     * Получить карточки которые пора повторить сегодня
+     * Получить карточки которые пора повторить сегодня (все колоды)
      */
-    List<CardResponse> getDueCards(Long userId);
+    List<StudyCardResponse> getDueCards(Long userId);
+
+    /**
+     * Получить карточки к повторению из конкретной колоды
+     */
+    List<StudyCardResponse> getDueCardsByDeck(Long userId, Long deckId);
 
     /**
      * Получить количество карточек к повторению

@@ -10,12 +10,12 @@ public interface DeckService {
     /**
      * Получить колоды текущего пользователя постранично
      */
-    PageResponse<DeckResponse> getMyDecks(Long userId, Pageable pageable);
+    PageResponse<DeckResponse> getMyDecks(Long userId, Long categoryId, String q, Pageable pageable);
 
     /**
      * Получить публичные колоды постранично
      */
-    PageResponse<DeckResponse> getPublicDecks(Pageable pageable);
+    PageResponse<DeckResponse> getPublicDecks(String q, Pageable pageable);
 
     /**
      * Получить колоду по id + проверка права доступа
@@ -36,4 +36,9 @@ public interface DeckService {
      * Удалить колоду + проверка, что колода принадлежит пользователю
      */
     void delete(Long deckId, Long userId);
+
+    /**
+     * Клонировать публичную колоду — создаёт копию колоды и всех карточек для пользователя
+     */
+    DeckResponse clone(Long deckId, Long userId);
 }
