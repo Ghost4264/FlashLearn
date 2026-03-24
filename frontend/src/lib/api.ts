@@ -2,8 +2,10 @@ import axios, { type InternalAxiosRequestConfig } from 'axios'
 import { useAuthStore } from '../store/authStore'
 import type { AuthResponse } from '../types/api'
 
+const apiBase = (import.meta.env.VITE_API_BASE_URL ?? '').replace(/\/$/, '')
+
 export const api = axios.create({
-  baseURL: 'http://localhost:8080',
+  baseURL: apiBase || undefined,
   headers: { 'Content-Type': 'application/json' },
 })
 
@@ -37,7 +39,8 @@ api.interceptors.response.use(
 
     originalRequest._retry = true
     try {
-      const { data } = await axios.post<AuthResponse>('http://localhost:8080/api/auth/refresh', {
+      const refreshUrl = apiBase ? `${apiBase}/api/auth/refresh` : '/api/auth/refresh'
+      const { data } = await axios.post<AuthResponse>(refreshUrl, {
         refreshToken: store.refreshToken,
       })
       store.setTokens(data.accessToken, data.refreshToken)

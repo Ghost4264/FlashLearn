@@ -14,8 +14,10 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -33,6 +35,33 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final AuthenticationProvider authenticationProvider;
+
+    /**
+     * UI и статика (Vite)
+     */
+    private static final RequestMatcher NON_API_GET_HEAD_OPTIONS = request -> {
+        String path = pathWithoutContext(request);
+        String method = request.getMethod();
+        if ("OPTIONS".equals(method)) {
+            return true;
+        }
+        if (path.startsWith("/api")) {
+            return false;
+        }
+        return "GET".equals(method) || "HEAD".equals(method);
+    };
+
+    private static String pathWithoutContext(HttpServletRequest request) {
+        String uri = request.getRequestURI();
+        String context = request.getContextPath();
+        if (context != null && !context.isEmpty() && uri.startsWith(context)) {
+            uri = uri.substring(context.length());
+        }
+        if (uri.isEmpty()) {
+            return "/";
+        }
+        return uri;
+    }
 
     @Value("${app.cors.allowed-origins:http://localhost:3000,http://localhost:5173}")
     private List<String> allowedOrigins;
@@ -53,8 +82,11 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/decks/public").permitAll()
+                        .requestMatchers(HttpMethod.HEAD, "/api/decks/public").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/public/health").permitAll()
+                        .requestMatchers(HttpMethod.HEAD, "/api/public/health").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        .requestMatchers(NON_API_GET_HEAD_OPTIONS).permitAll()
                         .anyRequest().authenticated()
                 )
 
