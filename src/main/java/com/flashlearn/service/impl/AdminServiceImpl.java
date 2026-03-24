@@ -137,7 +137,7 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     @Transactional
-    public AdminBulkDeckResponse importDeckFromCsvForAllUsers(MultipartFile file) {
+    public AdminBulkDeckResponse importPublicDeckFromCsv(Long adminUserId, MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "CSV файл обязателен");
         }
@@ -146,56 +146,50 @@ public class AdminServiceImpl implements AdminService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "CSV не содержит карточек");
         }
 
-        String baseTitle = csvDeckData.title() == null || csvDeckData.title().isBlank()
+        User admin = userRepository.findById(adminUserId)
+                .orElseThrow(() -> ResourceNotFoundException.of("Пользователь", adminUserId));
+
+        String deckTitle = csvDeckData.title() == null || csvDeckData.title().isBlank()
                 ? extractTitleFromFile(file)
                 : csvDeckData.title();
-        String baseDescription = csvDeckData.description() == null
-                ? "Импортировано администратором из CSV"
+        String deckDescription = csvDeckData.description() == null
+                ? "Добавлено администратором"
                 : csvDeckData.description();
-        boolean baseIsPublic = csvDeckData.isPublic();
-        String baseCategory = csvDeckData.categoryName() == null || csvDeckData.categoryName().isBlank()
+        String categoryName = csvDeckData.categoryName() == null || csvDeckData.categoryName().isBlank()
                 ? DEFAULT_CATEGORY_NAME
                 : csvDeckData.categoryName();
 
-        List<User> users = userRepository.findAll();
-        int decksCreated = 0;
-        int cardsCreated = 0;
+        Category category = resolveOrCreateCategory(admin, categoryName);
+        Deck deck = deckRepository.save(Deck.builder()
+                .user(admin)
+                .title(deckTitle)
+                .description(deckDescription)
+                .isPublic(true)
+                .category(category)
+                .build());
 
-        for (User user : users) {
-            Category category = resolveOrCreateCategory(user, baseCategory);
-            Deck deck = deckRepository.save(Deck.builder()
-                    .user(user)
-                    .title(baseTitle)
-                    .description(baseDescription)
-                    .isPublic(false)
-                    .category(category)
+        List<Card> cards = new ArrayList<>();
+        int pos = 1;
+        for (Card src : csvDeckData.cards()) {
+            cards.add(Card.builder()
+                    .deck(deck)
+                    .front(src.getFront())
+                    .back(src.getBack())
+                    .hint(src.getHint())
+                    .position(pos++)
                     .build());
-
-            List<Card> cards = new ArrayList<>();
-            int pos = 1;
-            for (Card src : csvDeckData.cards()) {
-                cards.add(Card.builder()
-                        .deck(deck)
-                        .front(src.getFront())
-                        .back(src.getBack())
-                        .hint(src.getHint())
-                        .position(pos++)
-                        .build());
-            }
-            cardRepository.saveAll(cards);
-            decksCreated++;
-            cardsCreated += cards.size();
         }
+        cardRepository.saveAll(cards);
 
         return AdminBulkDeckResponse.builder()
-                .decksCreated(decksCreated)
-                .cardsCreated(cardsCreated)
+                .decksCreated(1)
+                .cardsCreated(cards.size())
                 .build();
     }
 
     @Override
     @Transactional
-    public AdminBulkDeckResponse createDeckForAllUsers(String title, String description, boolean isPublic, String categoryName) {
+    public AdminBulkDeckResponse createPublicDeck(Long adminUserId, String title, String description, String categoryName) {
         String normalizedTitle = title == null ? "" : title.trim();
         if (normalizedTitle.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Название колоды обязательно");
@@ -204,22 +198,20 @@ public class AdminServiceImpl implements AdminService {
                 ? DEFAULT_CATEGORY_NAME
                 : categoryName.trim();
 
-        List<User> users = userRepository.findAll();
-        int decksCreated = 0;
-        for (User user : users) {
-            Category category = resolveOrCreateCategory(user, normalizedCategory);
-            deckRepository.save(Deck.builder()
-                    .user(user)
-                    .title(normalizedTitle)
-                    .description(description)
-                    .isPublic(isPublic)
-                    .category(category)
-                    .build());
-            decksCreated++;
-        }
+        User admin = userRepository.findById(adminUserId)
+                .orElseThrow(() -> ResourceNotFoundException.of("Пользователь", adminUserId));
+
+        Category category = resolveOrCreateCategory(admin, normalizedCategory);
+        deckRepository.save(Deck.builder()
+                .user(admin)
+                .title(normalizedTitle)
+                .description(description)
+                .isPublic(true)
+                .category(category)
+                .build());
 
         return AdminBulkDeckResponse.builder()
-                .decksCreated(decksCreated)
+                .decksCreated(1)
                 .cardsCreated(0)
                 .build();
     }

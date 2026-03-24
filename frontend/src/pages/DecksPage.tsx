@@ -53,7 +53,6 @@ export function DecksPage() {
 
   const [categories, setCategories] = useState<Category[]>([])
   const [filterCategoryId, setFilterCategoryId] = useState<number | null>(null)
-  const [categoryFilterQuery, setCategoryFilterQuery] = useState('')
 
   const [searchInput, setSearchInput] = useState('')
   const [searchQ, setSearchQ] = useState('')          // debounced value sent to API
@@ -72,8 +71,6 @@ export function DecksPage() {
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
-  const [isPublic, setIsPublic] = useState(false)
-
   const [selectedCategory, setSelectedCategory] = useState<string>('')
 
   const [error, setError] = useState<string | null>(null)
@@ -159,12 +156,10 @@ export function DecksPage() {
       await api.post('/api/decks', {
         title,
         description,
-        public: isPublic,
         categoryId,
       })
       setTitle('')
       setDescription('')
-      setIsPublic(false)
       if (categories.length > 0) {
         setSelectedCategory(String(categories[0].id))
       }
@@ -184,9 +179,6 @@ export function DecksPage() {
   }
 
   const totalCards = myDecks.reduce((sum, d) => sum + d.cardCount, 0)
-  const visibleFilterCategories = categories.filter((cat) =>
-    cat.name.toLowerCase().includes(categoryFilterQuery.trim().toLowerCase()),
-  )
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6">
@@ -255,38 +247,6 @@ export function DecksPage() {
 
       {error ? <p className="mb-4 text-red-600">{error}</p> : null}
 
-      {categories.length > 0 ? (
-        <div className="mb-4 rounded-lg border border-slate-200 bg-white p-3">
-          <p className="mb-2 text-xs font-medium text-slate-500">Фильтр по категории</p>
-          <div className="grid gap-2 md:grid-cols-2">
-            <input
-              className="rounded border border-slate-300 px-3 py-2 text-sm"
-              placeholder="Поиск категории..."
-              value={categoryFilterQuery}
-              onChange={(e) => setCategoryFilterQuery(e.target.value)}
-            />
-            <select
-              className="rounded border border-slate-300 px-3 py-2 text-sm"
-              value={filterCategoryId == null ? '' : String(filterCategoryId)}
-              onChange={(e) => {
-                const value = e.target.value
-                applyFilter(value === '' ? null : Number(value))
-              }}
-            >
-              <option value="">Все категории</option>
-              {visibleFilterCategories.map((cat) => (
-                <option key={cat.id} value={String(cat.id)}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
-          </div>
-          {categoryFilterQuery.trim() && visibleFilterCategories.length === 0 ? (
-            <p className="mt-2 text-xs text-slate-500">Категории не найдены</p>
-          ) : null}
-        </div>
-      ) : null}
-
       <form
         onSubmit={(event) => {
           event.preventDefault()
@@ -308,10 +268,6 @@ export function DecksPage() {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} />
-            <span>Публичная</span>
-          </label>
         </div>
 
         <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -337,14 +293,26 @@ export function DecksPage() {
 
       <div className="grid gap-6 md:grid-cols-2">
         <section className="rounded-lg bg-white p-4 shadow-sm">
-          <h2 className="mb-3 text-lg font-medium">
-            Ваши колоды ({myTotal})
-            {filterCategoryId != null ? (
-              <span className="ml-2 text-sm font-normal text-slate-500">
-                · {categories.find((c) => c.id === filterCategoryId)?.name}
-              </span>
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h2 className="text-lg font-medium">Ваши колоды ({myTotal})</h2>
+            {categories.length > 0 ? (
+              <select
+                className="rounded border border-slate-300 px-2 py-1 text-sm"
+                value={filterCategoryId == null ? '' : String(filterCategoryId)}
+                onChange={(e) => {
+                  const value = e.target.value
+                  applyFilter(value === '' ? null : Number(value))
+                }}
+              >
+                <option value="">Все категории</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={String(cat.id)}>
+                    {cat.name}
+                  </option>
+                ))}
+              </select>
             ) : null}
-          </h2>
+          </div>
           <ul className="space-y-2">
             {myDecks.map((deck) => (
               <li key={deck.id}>

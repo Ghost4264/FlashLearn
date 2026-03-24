@@ -16,7 +16,6 @@ export function AdminPage() {
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [manualCategoryName, setManualCategoryName] = useState('')
-  const [isPublic, setIsPublic] = useState(false)
   const [manualSaving, setManualSaving] = useState(false)
   const [manualMessage, setManualMessage] = useState<string | null>(null)
 
@@ -70,7 +69,7 @@ export function AdminPage() {
     e.preventDefault()
     if (!csvFile) return
 
-    const ok = window.confirm('Добавить колоду из CSV для всех пользователей?')
+    const ok = window.confirm('Создать публичную колоду из CSV?')
     if (!ok) return
 
     setCsvSaving(true)
@@ -99,13 +98,11 @@ export function AdminPage() {
       const { data } = await api.post<AdminBulkDeckResponse>('/api/admin/decks/create-for-all-users', {
         title: title.trim(),
         description: description.trim(),
-        isPublic,
         categoryName: manualCategoryName,
       })
-      setManualMessage(`Готово: создано колод ${data.decksCreated}`)
+      setManualMessage(`Готово: публичная колода создана (${data.cardsCreated} карточек)`)
       setTitle('')
       setDescription('')
-      setIsPublic(false)
     } catch {
       setManualMessage('Не удалось создать колоды')
     } finally {
@@ -153,8 +150,8 @@ export function AdminPage() {
       </form>
 
       <form onSubmit={(e) => void handleCsvImport(e)} className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <p className="mb-3 text-sm font-medium text-slate-700">Добавление колоды через CSV</p>
-        <p className="mb-2 text-xs text-slate-500">Файл может содержать метаданные колоды и список карточек.</p>
+        <p className="mb-3 text-sm font-medium text-slate-700">Добавление публичной колоды через CSV</p>
+        <p className="mb-2 text-xs text-slate-500">Колода будет видна всем пользователям в разделе «Публичные колоды».</p>
         <div className="rounded border border-slate-200 p-3">
           <div className="mb-2 flex items-center gap-2">
             <span className="text-xs text-slate-500">Пример формата CSV</span>
@@ -196,13 +193,13 @@ front;back;hint{'\n'}
           <p className="mt-2 text-sm text-slate-600">{csvFile ? `Выбран файл: ${csvFile.name}` : 'Файл пока не выбран'}</p>
         </div>
         <button disabled={csvSaving || !csvFile} className="mt-3 rounded bg-emerald-600 px-3 py-2 text-sm text-white disabled:opacity-50">
-          {csvSaving ? 'Добавляем...' : 'Добавить колоду из CSV всем пользователям'}
+          {csvSaving ? 'Добавляем...' : 'Создать публичную колоду из CSV'}
         </button>
         {csvMessage ? <p className="mt-2 text-xs text-slate-500">{csvMessage}</p> : null}
       </form>
 
       <form onSubmit={(e) => void handleManualCreate(e)} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <p className="mb-3 text-sm font-medium text-slate-700">Ручное добавление новой колоды для всех пользователей</p>
+        <p className="mb-3 text-sm font-medium text-slate-700">Ручное создание публичной колоды</p>
         <div className="grid gap-2">
           <input
             className="rounded border border-slate-300 px-3 py-2 text-sm"
@@ -230,12 +227,8 @@ front;back;hint{'\n'}
               </option>
             ))}
           </select>
-          <label className="inline-flex items-center gap-2 text-sm text-slate-700">
-            <input type="checkbox" checked={isPublic} onChange={(e) => setIsPublic(e.target.checked)} />
-            Публичная колода
-          </label>
           <button disabled={manualSaving} className="rounded bg-emerald-600 px-3 py-2 text-sm text-white disabled:opacity-50">
-            {manualSaving ? 'Создаем...' : 'Создать колоду для всех пользователей'}
+            {manualSaving ? 'Создаем...' : 'Создать публичную колоду'}
           </button>
         </div>
         {manualMessage ? <p className="mt-2 text-xs text-slate-500">{manualMessage}</p> : null}

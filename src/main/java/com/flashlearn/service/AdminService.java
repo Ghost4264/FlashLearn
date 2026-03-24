@@ -11,6 +11,6 @@ public interface AdminService {
     List<CategoryResponse> getCategoryPresets();
     CategoryResponse addCategoryPreset(String name);
     AdminDeckImportResponse importDeckFromCsv(Long userId, String title, String description, boolean isPublic, Long categoryId, MultipartFile file);
-    AdminBulkDeckResponse importDeckFromCsvForAllUsers(MultipartFile file);
-    AdminBulkDeckResponse createDeckForAllUsers(String title, String description, boolean isPublic, String categoryName);
+    AdminBulkDeckResponse importPublicDeckFromCsv(Long adminUserId, MultipartFile file);
+    AdminBulkDeckResponse createPublicDeck(Long adminUserId, String title, String description, String categoryName);
 }

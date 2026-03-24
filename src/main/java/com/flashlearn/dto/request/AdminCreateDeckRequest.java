@@ -8,6 +8,5 @@ public class AdminCreateDeckRequest {
     @NotBlank(message = "Название колоды обязательно")
     private String title;
     private String description;
-    private boolean isPublic;
     private String categoryName;
 }

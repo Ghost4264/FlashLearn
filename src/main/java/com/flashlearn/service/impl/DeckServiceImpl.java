@@ -91,7 +91,7 @@ public class DeckServiceImpl implements DeckService {
                 .user(user)
                 .title(request.getTitle())
                 .description(request.getDescription())
-                .isPublic(request.isPublic())
+                .isPublic(false)
                 .category(resolveCategory(request.getCategoryId(), userId))
                 .build();
 
@@ -108,7 +108,7 @@ public class DeckServiceImpl implements DeckService {
 
         deck.setTitle(request.getTitle());
         deck.setDescription(request.getDescription());
-        deck.setPublic(request.isPublic());
+        deck.setPublic(false);
         deck.setCategory(resolveCategory(request.getCategoryId(), userId));
 
         return toResponse(deckRepository.save(deck), userId);

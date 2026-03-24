@@ -22,7 +22,6 @@ export function DeckDetailPage() {
   const [deckForm, setDeckForm] = useState({
     title: '',
     description: '',
-    isPublic: false,
     selectedCategory: '',
     newCategoryName: '',
   })
@@ -64,7 +63,6 @@ export function DeckDetailPage() {
     setDeckForm({
       title: deck.title,
       description: deck.description ?? '',
-      isPublic: deck.public,
       selectedCategory: deck.categoryId != null ? String(deck.categoryId) : '',
       newCategoryName: '',
     })
@@ -91,7 +89,6 @@ export function DeckDetailPage() {
       await api.put(`/api/decks/${deckId}`, {
         title: deckForm.title.trim(),
         description: deckForm.description.trim(),
-        public: deckForm.isPublic,
         categoryId,
       })
       setEditingDeck(false)
@@ -220,14 +217,6 @@ export function DeckDetailPage() {
                 value={deckForm.description}
                 onChange={(e) => setDeckForm((f) => ({ ...f, description: e.target.value }))}
               />
-              <label className="flex items-center gap-2 text-sm text-slate-700">
-                <input
-                  type="checkbox"
-                  checked={deckForm.isPublic}
-                  onChange={(e) => setDeckForm((f) => ({ ...f, isPublic: e.target.checked }))}
-                />
-                Публичная колода
-              </label>
               <div className="flex flex-wrap items-center gap-2">
                 <select
                   className="rounded-lg border border-slate-300 px-3 py-2 text-sm"

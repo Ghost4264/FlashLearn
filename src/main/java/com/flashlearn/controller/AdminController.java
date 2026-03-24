@@ -60,19 +60,23 @@ public class AdminController {
                 .body(adminService.importDeckFromCsv(user.getId(), title, description, isPublic, categoryId, file));
     }
 
-    @Operation(summary = "Импорт колоды из CSV для всех пользователей")
+    @Operation(summary = "Импорт публичной колоды из CSV")
     @PostMapping(value = "/decks/import-csv-all-users", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<AdminBulkDeckResponse> importDeckFromCsvForAllUsers(@RequestPart("file") MultipartFile file) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(adminService.importDeckFromCsvForAllUsers(file));
+    public ResponseEntity<AdminBulkDeckResponse> importPublicDeckFromCsv(
+            @AuthenticationPrincipal User user,
+            @RequestPart("file") MultipartFile file) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(adminService.importPublicDeckFromCsv(user.getId(), file));
     }
 
-    @Operation(summary = "Создать колоду вручную для всех пользователей")
+    @Operation(summary = "Создать публичную колоду вручную")
     @PostMapping("/decks/create-for-all-users")
-    public ResponseEntity<AdminBulkDeckResponse> createDeckForAllUsers(@Valid @RequestBody AdminCreateDeckRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(adminService.createDeckForAllUsers(
+    public ResponseEntity<AdminBulkDeckResponse> createPublicDeck(
+            @AuthenticationPrincipal User user,
+            @Valid @RequestBody AdminCreateDeckRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(adminService.createPublicDeck(
+                user.getId(),
                 request.getTitle(),
                 request.getDescription(),
-                request.isPublic(),
                 request.getCategoryName()
         ));
     }
