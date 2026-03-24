@@ -167,7 +167,7 @@ public class AdminServiceImpl implements AdminService {
                     .user(user)
                     .title(baseTitle)
                     .description(baseDescription)
-                    .isPublic(baseIsPublic)
+                    .isPublic(false)
                     .category(category)
                     .build());
 
