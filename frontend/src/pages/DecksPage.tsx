@@ -66,6 +66,8 @@ export function DecksPage() {
   const [publicDecks, setPublicDecks] = useState<Deck[]>([])
   const [pubPage, setPubPage] = useState(0)
   const [pubTotalPages, setPubTotalPages] = useState(0)
+  const [pubCategories, setPubCategories] = useState<string[]>([])
+  const [pubCategoryFilter, setPubCategoryFilter] = useState<string>('')
 
   const [dueCount, setDueCount] = useState<number>(0)
 
@@ -93,14 +95,20 @@ export function DecksPage() {
     setMyTotal(data.totalElements)
   }, [])
 
-  const loadPublicDecks = useCallback(async (page: number, q: string) => {
+  const loadPublicDecks = useCallback(async (page: number, q: string, categoryName: string) => {
     const qParam = q.trim() ? `&q=${encodeURIComponent(q.trim())}` : ''
+    const catParam = categoryName ? `&categoryName=${encodeURIComponent(categoryName)}` : ''
     const { data } = await api.get<PageResponse<Deck>>(
-      `/api/decks/public?page=${page}&size=${PAGE_SIZE}${qParam}`,
+      `/api/decks/public?page=${page}&size=${PAGE_SIZE}${qParam}${catParam}`,
     )
     setPublicDecks(data.content)
     setPubPage(data.page)
     setPubTotalPages(data.totalPages)
+  }, [])
+
+  const loadPubCategories = useCallback(async () => {
+    const { data } = await api.get<string[]>('/api/decks/public/categories')
+    setPubCategories(data)
   }, [])
 
   const loadDueCount = useCallback(async () => {
@@ -115,7 +123,8 @@ export function DecksPage() {
         await Promise.all([
           loadCategories(),
           loadMyDecks(0, null, ''),
-          loadPublicDecks(0, ''),
+          loadPublicDecks(0, '', ''),
+          loadPubCategories(),
           loadDueCount(),
         ])
       } catch {
@@ -125,14 +134,14 @@ export function DecksPage() {
     return () => {
       active = false
     }
-  }, [loadCategories, loadMyDecks, loadPublicDecks, loadDueCount])
+  }, [loadCategories, loadMyDecks, loadPublicDecks, loadPubCategories, loadDueCount])
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current)
     debounceRef.current = setTimeout(() => {
       setSearchQ(searchInput)
       void loadMyDecks(0, filterCategoryId, searchInput)
-      void loadPublicDecks(0, searchInput)
+      void loadPublicDecks(0, searchInput, pubCategoryFilter)
     }, 350)
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
@@ -354,12 +363,35 @@ export function DecksPage() {
         </section>
 
         <section className="rounded-lg bg-white p-4 shadow-sm">
-          <h2 className="mb-3 text-lg font-medium">Публичные колоды</h2>
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h2 className="text-lg font-medium">Публичные колоды</h2>
+            {pubCategories.length > 0 ? (
+              <select
+                className="rounded border border-slate-300 px-2 py-1 text-sm"
+                value={pubCategoryFilter}
+                onChange={(e) => {
+                  const value = e.target.value
+                  setPubCategoryFilter(value)
+                  void loadPublicDecks(0, searchQ, value)
+                }}
+              >
+                <option value="">Все категории</option>
+                {pubCategories.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            ) : null}
+          </div>
           <ul className="space-y-2">
             {publicDecks.map((deck) => (
               <li key={deck.id} className="flex items-start justify-between gap-3 rounded border border-slate-200 p-3">
                 <div className="min-w-0">
                   <p className="font-medium truncate">{deck.title}</p>
+                  {deck.categoryName ? (
+                    <span className="inline-block rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500 mt-0.5">
+                      {deck.categoryName}
+                    </span>
+                  ) : null}
                   <p className="text-sm text-slate-600 truncate">{deck.description || 'Без описания'}</p>
                   <p className="mt-0.5 text-xs text-slate-400">{deck.cardCount} карт.</p>
                 </div>
@@ -372,13 +404,15 @@ export function DecksPage() {
               </li>
             ))}
             {publicDecks.length === 0 ? (
-              <li className="text-sm text-slate-500">Пока нет публичных колод</li>
+              <li className="text-sm text-slate-500">
+                {pubCategoryFilter ? 'Нет колод в этой категории' : 'Пока нет публичных колод'}
+              </li>
             ) : null}
           </ul>
           <Pagination
             page={pubPage}
             totalPages={pubTotalPages}
-            onPage={(p) => void loadPublicDecks(p, searchQ)}
+            onPage={(p) => void loadPublicDecks(p, searchQ, pubCategoryFilter)}
           />
         </section>
       </div>

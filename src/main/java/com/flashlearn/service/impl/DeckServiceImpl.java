@@ -57,11 +57,18 @@ public class DeckServiceImpl implements DeckService {
      */
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<DeckResponse> getPublicDecks(String q, Pageable pageable) {
+    public PageResponse<DeckResponse> getPublicDecks(String categoryName, String q, Pageable pageable) {
         String search = StringUtils.hasText(q) ? q.trim() : null;
-        var page = deckRepository.findAllPublicFiltered(search, pageable);
+        String category = StringUtils.hasText(categoryName) ? categoryName.trim() : null;
+        var page = deckRepository.findAllPublicFiltered(category, search, pageable);
         var counts = bulkCounts(page.getContent(), null);
         return PageResponse.of(page.map(deck -> toResponse(deck, counts)));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public java.util.List<String> getPublicDeckCategories() {
+        return deckRepository.findDistinctCategoryNamesInPublicDecks();
     }
 
     /**

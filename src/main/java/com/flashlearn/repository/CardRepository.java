@@ -65,6 +65,7 @@ public interface CardRepository extends JpaRepository<Card, Long> {
     @Query("""
             SELECT COUNT(c) FROM Card c
             WHERE c.deck.user.id = :userId
+              AND c.deck.isPublic = false
               AND NOT EXISTS (
                   SELECT rp FROM ReviewProgress rp
                   WHERE rp.card = c AND rp.user.id = :userId

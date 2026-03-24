@@ -61,9 +61,17 @@ public class DeckController {
     @SecurityRequirements
     @GetMapping("/public")
     public ResponseEntity<PageResponse<DeckResponse>> getPublicDecks(
+            @RequestParam(required = false) String categoryName,
             @RequestParam(required = false) String q,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(deckService.getPublicDecks(q, pageable));
+        return ResponseEntity.ok(deckService.getPublicDecks(categoryName, q, pageable));
+    }
+
+    @Operation(summary = "Категории публичных колод")
+    @SecurityRequirements
+    @GetMapping("/public/categories")
+    public ResponseEntity<java.util.List<String>> getPublicDeckCategories() {
+        return ResponseEntity.ok(deckService.getPublicDeckCategories());
     }
 
     /**

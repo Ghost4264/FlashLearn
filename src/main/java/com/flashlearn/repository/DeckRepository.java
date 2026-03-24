@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface DeckRepository extends JpaRepository<Deck, Long> {
@@ -40,14 +41,21 @@ public interface DeckRepository extends JpaRepository<Deck, Long> {
             Pageable pageable);
 
     /**
-     * Поиск по публичным колодам с опциональной строкой поиска
+     * Поиск по публичным колодам с опциональной фильтрацией по категории и строке поиска
      */
     @Query("""
             SELECT d FROM Deck d
             WHERE d.isPublic = true
+              AND (:categoryName IS NULL OR d.category.name = :categoryName)
               AND (COALESCE(:q, '') = ''
                    OR LOWER(d.title) LIKE LOWER(CONCAT('%', COALESCE(:q, ''), '%'))
                    OR LOWER(COALESCE(d.description, '')) LIKE LOWER(CONCAT('%', COALESCE(:q, ''), '%')))
             """)
-    Page<Deck> findAllPublicFiltered(@Param("q") String q, Pageable pageable);
+    Page<Deck> findAllPublicFiltered(@Param("categoryName") String categoryName, @Param("q") String q, Pageable pageable);
+
+    /**
+     * Уникальные имена категорий публичных колод (для фильтра)
+     */
+    @Query("SELECT DISTINCT d.category.name FROM Deck d WHERE d.isPublic = true AND d.category IS NOT NULL ORDER BY d.category.name")
+    List<String> findDistinctCategoryNamesInPublicDecks();
 }

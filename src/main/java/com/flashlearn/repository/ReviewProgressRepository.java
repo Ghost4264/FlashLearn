@@ -16,6 +16,7 @@ public interface ReviewProgressRepository extends JpaRepository<ReviewProgress, 
     @Query("""
             SELECT rp FROM ReviewProgress rp
             WHERE rp.user.id = :userId
+              AND rp.card.deck.isPublic = false
               AND rp.nextReviewAt <= :now
             ORDER BY rp.nextReviewAt ASC
             """)
@@ -36,6 +37,7 @@ public interface ReviewProgressRepository extends JpaRepository<ReviewProgress, 
     @Query("""
             SELECT COUNT(rp) FROM ReviewProgress rp
             WHERE rp.user.id = :userId
+              AND rp.card.deck.isPublic = false
               AND rp.nextReviewAt <= :now
             """)
     long countDueCards(@Param("userId") Long userId,
