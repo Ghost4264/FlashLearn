@@ -121,6 +121,9 @@ public class DeckServiceImpl implements DeckService {
     @Transactional
     public void delete(Long deckId, Long userId) {
         Deck deck = findOwnedDeck(deckId, userId);
+        if (deck.isPublic()) {
+            throw new AccessDeniedException("Публичные колоды управляются через админ-панель");
+        }
         deckRepository.delete(deck);
     }
 

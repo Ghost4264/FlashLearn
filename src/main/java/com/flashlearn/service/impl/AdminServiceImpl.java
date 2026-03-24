@@ -216,6 +216,17 @@ public class AdminServiceImpl implements AdminService {
                 .build();
     }
 
+    @Override
+    @Transactional
+    public void deletePublicDeck(Long deckId) {
+        Deck deck = deckRepository.findById(deckId)
+                .orElseThrow(() -> ResourceNotFoundException.of("Колода", deckId));
+        if (!deck.isPublic()) {
+            throw new AccessDeniedException("Это не публичная колода");
+        }
+        deckRepository.delete(deck);
+    }
+
     private List<Card> parseCards(MultipartFile file) {
         List<Card> cards = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(

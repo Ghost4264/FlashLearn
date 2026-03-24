@@ -13,4 +13,5 @@ public interface AdminService {
     AdminDeckImportResponse importDeckFromCsv(Long userId, String title, String description, boolean isPublic, Long categoryId, MultipartFile file);
     AdminBulkDeckResponse importPublicDeckFromCsv(Long adminUserId, MultipartFile file);
     AdminBulkDeckResponse createPublicDeck(Long adminUserId, String title, String description, String categoryName);
+    void deletePublicDeck(Long deckId);
 }

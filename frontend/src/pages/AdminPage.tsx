@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
-import type { AdminBulkDeckResponse, Category, UserProfile } from '../types/api'
+import type { AdminBulkDeckResponse, Category, Deck, PageResponse, UserProfile } from '../types/api'
 
 export function AdminPage() {
   const navigate = useNavigate()
@@ -19,6 +19,9 @@ export function AdminPage() {
   const [manualSaving, setManualSaving] = useState(false)
   const [manualMessage, setManualMessage] = useState<string | null>(null)
 
+  const [publicDecks, setPublicDecks] = useState<Deck[]>([])
+  const [deletingDeckId, setDeletingDeckId] = useState<number | null>(null)
+
   const [csvFile, setCsvFile] = useState<File | null>(null)
   const [csvSaving, setCsvSaving] = useState(false)
   const [csvMessage, setCsvMessage] = useState<string | null>(null)
@@ -32,6 +35,11 @@ export function AdminPage() {
     }
   }
 
+  const loadPublicDecks = async () => {
+    const { data } = await api.get<PageResponse<Deck>>('/api/decks/public?size=100')
+    setPublicDecks(data.content)
+  }
+
   useEffect(() => {
     void (async () => {
       try {
@@ -40,7 +48,7 @@ export function AdminPage() {
           setForbidden(true)
           return
         }
-        await loadData()
+        await Promise.all([loadData(), loadPublicDecks()])
       } catch {
         setForbidden(true)
       } finally {
@@ -83,10 +91,24 @@ export function AdminPage() {
       })
       setCsvMessage(`Готово: создано колод ${data.decksCreated}, карточек ${data.cardsCreated}`)
       setCsvFile(null)
+      await loadPublicDecks()
     } catch {
       setCsvMessage('Ошибка импорта CSV')
     } finally {
       setCsvSaving(false)
+    }
+  }
+
+  const handleDeletePublicDeck = async (deckId: number, deckTitle: string) => {
+    if (!window.confirm(`Удалить публичную колоду «${deckTitle}»? Это действие нельзя отменить.`)) return
+    setDeletingDeckId(deckId)
+    try {
+      await api.delete(`/api/admin/decks/${deckId}`)
+      await loadPublicDecks()
+    } catch {
+      alert('Не удалось удалить колоду')
+    } finally {
+      setDeletingDeckId(null)
     }
   }
 
@@ -233,6 +255,34 @@ front;back;hint{'\n'}
         </div>
         {manualMessage ? <p className="mt-2 text-xs text-slate-500">{manualMessage}</p> : null}
       </form>
+
+      <div className="mt-6 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <p className="mb-3 text-sm font-medium text-slate-700">Публичные колоды ({publicDecks.length})</p>
+        {publicDecks.length === 0 ? (
+          <p className="text-xs text-slate-400">Публичных колод пока нет</p>
+        ) : (
+          <ul className="space-y-2">
+            {publicDecks.map((deck) => (
+              <li key={deck.id} className="flex items-center justify-between gap-3 rounded border border-slate-200 p-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{deck.title}</p>
+                  {deck.categoryName ? (
+                    <span className="text-xs text-slate-400">{deck.categoryName}</span>
+                  ) : null}
+                  <p className="text-xs text-slate-400">{deck.cardCount} карт.</p>
+                </div>
+                <button
+                  disabled={deletingDeckId === deck.id}
+                  onClick={() => void handleDeletePublicDeck(deck.id, deck.title)}
+                  className="shrink-0 rounded border border-red-200 px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                >
+                  {deletingDeckId === deck.id ? 'Удаляем...' : 'Удалить'}
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   )
 }

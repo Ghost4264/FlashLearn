@@ -27,6 +27,7 @@ public interface DeckRepository extends JpaRepository<Deck, Long> {
     @Query("""
             SELECT d FROM Deck d
             WHERE d.user.id = :userId
+              AND d.isPublic = false
               AND (:categoryId IS NULL OR d.category.id = :categoryId)
               AND (COALESCE(:q, '') = ''
                    OR LOWER(d.title) LIKE LOWER(CONCAT('%', COALESCE(:q, ''), '%'))
