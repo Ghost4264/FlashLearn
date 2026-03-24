@@ -1,4 +1,4 @@
-# FlashLearn
+# [FlashLearn](https://flashlearn-production-8558.up.railway.app)
 
 SaaS-платформа для интервального повторения: колоды, карточки, обучение по SM-2, публичные колоды и админ-инструменты.
 
