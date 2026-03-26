@@ -17,7 +17,7 @@ function Pagination({
 }) {
   if (totalPages <= 1) return null
   return (
-    <div className="mt-3 flex items-center justify-center gap-1">
+    <div className="mt-3 flex flex-wrap items-center justify-center gap-1">
       <button
         disabled={page === 0}
         onClick={() => onPage(page - 1)}
@@ -191,11 +191,11 @@ export function DecksPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Мои колоды</h1>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-semibold sm:text-2xl">Мои колоды</h1>
         <div className="flex items-center gap-2">
           <button
-            className="flex items-center gap-1.5 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white disabled:opacity-40"
+            className="flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-40 sm:px-4 sm:py-2"
             disabled={dueCount === 0}
             onClick={() => navigate('/study')}
           >
@@ -206,10 +206,10 @@ export function DecksPage() {
               </span>
             ) : null}
           </button>
-          <Link to="/profile" className="rounded border px-3 py-1.5 text-sm hover:bg-slate-50">
+          <Link to="/profile" className="rounded border px-2.5 py-1.5 text-sm hover:bg-slate-50">
             Профиль
           </Link>
-          <button className="rounded border px-3 py-1.5 text-sm" onClick={() => clearTokens()}>
+          <button className="rounded border px-2.5 py-1.5 text-sm" onClick={() => clearTokens()}>
             Выйти
           </button>
         </div>
@@ -263,25 +263,25 @@ export function DecksPage() {
         }}
         className="mb-6 rounded-lg bg-white p-4 shadow-sm"
       >
-        <div className="grid gap-2 md:grid-cols-4">
+        <div className="grid gap-2 sm:grid-cols-4">
           <input
-            className="rounded border border-slate-300 px-3 py-2 md:col-span-2"
+            className="rounded border border-slate-300 px-3 py-2 text-sm sm:col-span-2"
             placeholder="Название колоды"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
           />
           <input
-            className="rounded border border-slate-300 px-3 py-2"
+            className="rounded border border-slate-300 px-3 py-2 text-sm"
             placeholder="Описание"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
           />
         </div>
 
-        <div className="mt-2 flex flex-wrap items-center gap-2">
+        <div className="mt-2">
           <select
-            className="rounded border border-slate-300 px-3 py-2 text-sm"
+            className="w-full rounded border border-slate-300 px-3 py-2 text-sm sm:w-auto"
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
             required
@@ -297,16 +297,16 @@ export function DecksPage() {
           </select>
         </div>
 
-        <button className="mt-3 w-full rounded bg-slate-900 px-3 py-2 text-white">Создать колоду</button>
+        <button className="mt-3 w-full rounded bg-slate-900 px-3 py-2 text-sm text-white">Создать колоду</button>
       </form>
 
       <div className="grid gap-6 md:grid-cols-2">
         <section className="rounded-lg bg-white p-4 shadow-sm">
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <h2 className="text-lg font-medium">Ваши колоды ({myTotal})</h2>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-base font-medium sm:text-lg">Ваши колоды ({myTotal})</h2>
             {categories.length > 0 ? (
               <select
-                className="rounded border border-slate-300 px-2 py-1 text-sm"
+                className="max-w-[160px] rounded border border-slate-300 px-2 py-1 text-sm"
                 value={filterCategoryId == null ? '' : String(filterCategoryId)}
                 onChange={(e) => {
                   const value = e.target.value
@@ -363,11 +363,11 @@ export function DecksPage() {
         </section>
 
         <section className="rounded-lg bg-white p-4 shadow-sm">
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <h2 className="text-lg font-medium">Публичные колоды</h2>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-base font-medium sm:text-lg">Публичные колоды</h2>
             {pubCategories.length > 0 ? (
               <select
-                className="rounded border border-slate-300 px-2 py-1 text-sm"
+                className="max-w-[160px] rounded border border-slate-300 px-2 py-1 text-sm"
                 value={pubCategoryFilter}
                 onChange={(e) => {
                   const value = e.target.value
