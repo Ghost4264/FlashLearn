@@ -15,3 +15,9 @@ body {
 a {
   color: inherit;
 }
+
+input,
+select,
+textarea {
+  font-size: max(16px, 1em);
+}
