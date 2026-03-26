@@ -30,6 +30,13 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 
+  web:
+    resources:
+      cache:
+        cachecontrol:
+          no-cache: true
+          must-revalidate: true
+
 server:
   port: ${PORT:8080}
   forward-headers-strategy: native
