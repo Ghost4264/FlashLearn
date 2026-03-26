@@ -7,6 +7,14 @@ spring:
     username: ${DB_USERNAME:flashlearn}
     password: ${DB_PASSWORD:flashlearn}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      idle-timeout: 300000
+      max-lifetime: 600000
+      keepalive-time: 60000
+      connection-test-query: SELECT 1
 
   jpa:
     hibernate:
