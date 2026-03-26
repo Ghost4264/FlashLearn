@@ -236,17 +236,17 @@ export function DecksPage() {
       </div>
 
       {myTotal > 0 ? (
-        <div className="mb-6 grid grid-cols-3 gap-3">
-          <div className="rounded-xl bg-white p-3 text-center shadow-sm">
-            <p className="text-2xl font-bold">{myTotal}</p>
+        <div className="mb-6 grid grid-cols-3 gap-2 sm:gap-3">
+          <div className="rounded-xl bg-white p-2 sm:p-3 text-center shadow-sm">
+            <p className="text-xl sm:text-2xl font-bold">{myTotal}</p>
             <p className="text-xs text-slate-500">колод</p>
           </div>
-          <div className="rounded-xl bg-white p-3 text-center shadow-sm">
-            <p className="text-2xl font-bold">{totalCards}</p>
+          <div className="rounded-xl bg-white p-2 sm:p-3 text-center shadow-sm">
+            <p className="text-xl sm:text-2xl font-bold">{totalCards}</p>
             <p className="text-xs text-slate-500">карточек на стр.</p>
           </div>
-          <div className="rounded-xl bg-white p-3 text-center shadow-sm">
-            <p className={`text-2xl font-bold ${dueCount > 0 ? 'text-slate-900' : 'text-slate-300'}`}>
+          <div className="rounded-xl bg-white p-2 sm:p-3 text-center shadow-sm">
+            <p className={`text-xl sm:text-2xl font-bold ${dueCount > 0 ? 'text-slate-900' : 'text-slate-300'}`}>
               {dueCount}
             </p>
             <p className="text-xs text-slate-500">к повторению</p>
@@ -301,7 +301,7 @@ export function DecksPage() {
       </form>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <section className="rounded-lg bg-white p-4 shadow-sm">
+        <section className="overflow-hidden rounded-lg bg-white p-4 shadow-sm">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-base font-medium sm:text-lg">Ваши колоды ({myTotal})</h2>
             {categories.length > 0 ? (
@@ -329,7 +329,7 @@ export function DecksPage() {
                   to={`/decks/${deck.id}`}
                   className="flex items-center justify-between rounded border border-slate-200 p-3 hover:border-slate-400 hover:bg-slate-50 transition-colors"
                 >
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1">
                     <p className="font-medium truncate">{deck.title}</p>
                     {deck.categoryName ? (
                       <span className="inline-block rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500 mt-0.5">
@@ -362,7 +362,7 @@ export function DecksPage() {
           />
         </section>
 
-        <section className="rounded-lg bg-white p-4 shadow-sm">
+        <section className="overflow-hidden rounded-lg bg-white p-4 shadow-sm">
           <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-base font-medium sm:text-lg">Публичные колоды</h2>
             {pubCategories.length > 0 ? (
@@ -385,7 +385,7 @@ export function DecksPage() {
           <ul className="space-y-2">
             {publicDecks.map((deck) => (
               <li key={deck.id} className="flex items-start justify-between gap-3 rounded border border-slate-200 p-3">
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="font-medium truncate">{deck.title}</p>
                   {deck.categoryName ? (
                     <span className="inline-block rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-500 mt-0.5">
