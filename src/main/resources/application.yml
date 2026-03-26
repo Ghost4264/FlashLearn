@@ -30,6 +30,13 @@ spring:
     locations: classpath:db/migration
     baseline-on-migrate: true
 
+  web:
+    resources:
+      cache:
+        cachecontrol:
+          no-cache: true
+          must-revalidate: true
+
 server:
   port: ${PORT:8080}
   forward-headers-strategy: native
@@ -38,7 +45,7 @@ app:
   jwt:
     secret: ${JWT_SECRET:changeme-this-is-a-very-long-secret-key-for-development}
     expiration-ms: 86400000
-    refresh-expiration-ms: 604800000
+    refresh-expiration-ms: 18000000
   auth:
     refresh-token-cleanup-cron: ${REFRESH_TOKEN_CLEANUP_CRON:0 0 * * * *}
   cors:
