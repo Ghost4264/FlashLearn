@@ -85,6 +85,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/decks/public").permitAll()
                         .requestMatchers(HttpMethod.HEAD, "/api/decks/public").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/decks/public/categories").permitAll()
+                        .requestMatchers(HttpMethod.HEAD, "/api/decks/public/categories").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/public/health").permitAll()
                         .requestMatchers(HttpMethod.HEAD, "/api/public/health").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()

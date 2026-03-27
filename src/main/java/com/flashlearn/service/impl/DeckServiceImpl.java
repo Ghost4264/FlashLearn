@@ -1,6 +1,7 @@
 package com.flashlearn.service.impl;
 
 import com.flashlearn.dto.request.DeckRequest;
+import com.flashlearn.dto.response.DeckImportCsvResponse;
 import com.flashlearn.dto.response.DeckResponse;
 import com.flashlearn.dto.response.PageResponse;
 import com.flashlearn.entity.Card;
@@ -16,19 +17,25 @@ import com.flashlearn.repository.DeckRepository;
 import com.flashlearn.repository.ReviewProgressRepository;
 import com.flashlearn.repository.UserRepository;
 import com.flashlearn.service.DeckService;
+import com.flashlearn.util.DeckCsvParser;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import static com.flashlearn.config.CacheConfig.PUBLIC_DECK_CATEGORIES;
 import static com.flashlearn.config.CacheConfig.PUBLIC_DECKS;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -37,9 +44,12 @@ import java.util.stream.Collectors;
 /**
  * Реализация сервиса управления колодами карточек
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class DeckServiceImpl implements DeckService {
+
+    private static final String DEFAULT_IMPORT_CATEGORY = "Разное";
 
     private final DeckRepository deckRepository;
     private final UserRepository userRepository;
@@ -125,7 +135,9 @@ public class DeckServiceImpl implements DeckService {
                 .category(resolveCategory(request.getCategoryId(), userId))
                 .build();
 
-        return toResponse(deckRepository.save(deck), userId);
+        deck = deckRepository.save(deck);
+        log.info("Создана колода: userId={}, deckId={}, title={}", userId, deck.getId(), deck.getTitle());
+        return toResponse(deck, userId);
     }
 
     /**
@@ -141,7 +153,9 @@ public class DeckServiceImpl implements DeckService {
         deck.setPublic(false);
         deck.setCategory(resolveCategory(request.getCategoryId(), userId));
 
-        return toResponse(deckRepository.save(deck), userId);
+        deck = deckRepository.save(deck);
+        log.info("Обновлена колода: userId={}, deckId={}, title={}", userId, deckId, deck.getTitle());
+        return toResponse(deck, userId);
     }
 
     /**
@@ -155,6 +169,7 @@ public class DeckServiceImpl implements DeckService {
         if (deck.isPublic()) {
             throw new AccessDeniedException("Публичные колоды управляются через админ-панель");
         }
+        log.info("Удалена колода: userId={}, deckId={}, title={}", userId, deckId, deck.getTitle());
         deckRepository.delete(deck);
     }
 
@@ -200,6 +215,14 @@ public class DeckServiceImpl implements DeckService {
                 .toList();
         cardRepository.saveAll(copiedCards);
 
+        log.info(
+                "Клонирована публичная колода: userId={}, sourceDeckId={}, newDeckId={}, copiedCards={}, title={}",
+                userId,
+                source.getId(),
+                copy.getId(),
+                copiedCards.size(),
+                copy.getTitle()
+        );
         return toResponse(copy, userId);
     }
 
@@ -210,6 +233,7 @@ public class DeckServiceImpl implements DeckService {
         if (deck.isPublic()) {
             throw new AccessDeniedException("Экспорт в CSV доступен только для личных колод, не для публичных");
         }
+        log.info("Экспорт колоды в CSV: userId={}, deckId={}, title={}", userId, deckId, deck.getTitle());
         List<Card> cards = cardRepository.findAllByDeckIdOrderByPosition(deckId);
         StringBuilder sb = new StringBuilder();
         sb.append("title;").append(csvCell(deck.getTitle())).append('\n');
@@ -229,6 +253,65 @@ public class DeckServiceImpl implements DeckService {
         System.arraycopy(bom, 0, out, 0, bom.length);
         System.arraycopy(utf8, 0, out, bom.length, utf8.length);
         return out;
+    }
+
+    @Override
+    @Transactional
+    public DeckImportCsvResponse importPersonalDeckFromCsv(Long userId, MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "CSV файл обязателен");
+        }
+        DeckCsvParser.assertCsvSizeWithinLimit(file);
+        DeckCsvParser.CsvDeckData csvDeckData = DeckCsvParser.parseDeckCsv(file);
+        if (csvDeckData.cards().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "CSV не содержит карточек");
+        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> ResourceNotFoundException.of("Пользователь", userId));
+
+        String deckTitle = csvDeckData.title() == null || csvDeckData.title().isBlank()
+                ? DeckCsvParser.extractTitleFromFile(file)
+                : csvDeckData.title().trim();
+        String deckDescription = csvDeckData.description() != null ? csvDeckData.description() : "";
+        String categoryName = csvDeckData.categoryName() == null || csvDeckData.categoryName().isBlank()
+                ? DEFAULT_IMPORT_CATEGORY
+                : csvDeckData.categoryName().trim();
+
+        Category category = resolveOrCreateCategoryByName(user, categoryName);
+        Deck deck = deckRepository.save(Deck.builder()
+                .user(user)
+                .title(deckTitle)
+                .description(deckDescription)
+                .isPublic(false)
+                .category(category)
+                .build());
+
+        List<Card> toSave = new ArrayList<>();
+        int pos = 1;
+        for (Card src : csvDeckData.cards()) {
+            toSave.add(Card.builder()
+                    .deck(deck)
+                    .front(src.getFront())
+                    .back(src.getBack())
+                    .hint(src.getHint())
+                    .position(pos++)
+                    .build());
+        }
+        cardRepository.saveAll(toSave);
+
+        log.info(
+                "Импорт колоды из CSV: userId={}, deckId={}, cardsImported={}, fileName={}, title={}",
+                userId,
+                deck.getId(),
+                toSave.size(),
+                file.getOriginalFilename(),
+                deck.getTitle()
+        );
+        DeckResponse response = toResponse(deck, userId);
+        return DeckImportCsvResponse.builder()
+                .deck(response)
+                .cardsImported(toSave.size())
+                .build();
     }
 
     private static String csvCell(String s) {

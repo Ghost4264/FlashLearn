@@ -18,7 +18,9 @@ import com.flashlearn.repository.CategoryRepository;
 import com.flashlearn.repository.DeckRepository;
 import com.flashlearn.repository.UserRepository;
 import com.flashlearn.service.AdminService;
+import com.flashlearn.util.DeckCsvParser;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -29,14 +31,10 @@ import org.springframework.web.server.ResponseStatusException;
 import static com.flashlearn.config.CacheConfig.PUBLIC_DECK_CATEGORIES;
 import static com.flashlearn.config.CacheConfig.PUBLIC_DECKS;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AdminServiceImpl implements AdminService {
@@ -80,6 +78,7 @@ public class AdminServiceImpl implements AdminService {
             categoryRepository.saveAll(toInsert);
         }
 
+        log.info("Добавлена пресет-категория: presetId={}, name={}", preset.getId(), preset.getName());
         return CategoryResponse.builder().id(preset.getId()).name(preset.getName()).build();
     }
 
@@ -97,6 +96,7 @@ public class AdminServiceImpl implements AdminService {
         if (file == null || file.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "CSV файл обязателен");
         }
+        DeckCsvParser.assertCsvSizeWithinLimit(file);
         String normalizedTitle = title == null ? "" : title.trim();
         if (normalizedTitle.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Название колоды обязательно");
@@ -110,7 +110,7 @@ public class AdminServiceImpl implements AdminService {
         Category category = categoryRepository.findByIdAndUserId(categoryId, userId)
                 .orElseThrow(() -> new AccessDeniedException("Категория не найдена"));
 
-        List<Card> cards = parseCards(file);
+        List<Card> cards = DeckCsvParser.parseSimpleCards(file);
         if (cards.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "CSV не содержит карточек");
         }
@@ -134,6 +134,13 @@ public class AdminServiceImpl implements AdminService {
         response.setCardCount(cards.size());
         response.setDueCardCount(cards.size());
 
+        log.info(
+                "Админ: импорт колоды из CSV (простой формат): adminUserId={}, deckId={}, importedCards={}, isPublic={}",
+                userId,
+                deck.getId(),
+                cards.size(),
+                isPublic
+        );
         return AdminDeckImportResponse.builder()
                 .deck(response)
                 .importedCards(cards.size())
@@ -147,7 +154,8 @@ public class AdminServiceImpl implements AdminService {
         if (file == null || file.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "CSV файл обязателен");
         }
-        CsvDeckData csvDeckData = parseDeckCsv(file);
+        DeckCsvParser.assertCsvSizeWithinLimit(file);
+        DeckCsvParser.CsvDeckData csvDeckData = DeckCsvParser.parseDeckCsv(file);
         if (csvDeckData.cards().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "CSV не содержит карточек");
         }
@@ -156,7 +164,7 @@ public class AdminServiceImpl implements AdminService {
                 .orElseThrow(() -> ResourceNotFoundException.of("Пользователь", adminUserId));
 
         String deckTitle = csvDeckData.title() == null || csvDeckData.title().isBlank()
-                ? extractTitleFromFile(file)
+                ? DeckCsvParser.extractTitleFromFile(file)
                 : csvDeckData.title();
         String deckDescription = csvDeckData.description() == null
                 ? "Добавлено администратором"
@@ -187,6 +195,13 @@ public class AdminServiceImpl implements AdminService {
         }
         cardRepository.saveAll(cards);
 
+        log.info(
+                "Админ: импорт публичной колоды из CSV: adminUserId={}, deckId={}, cardsCreated={}, title={}",
+                adminUserId,
+                deck.getId(),
+                cards.size(),
+                deck.getTitle()
+        );
         return AdminBulkDeckResponse.builder()
                 .decksCreated(1)
                 .cardsCreated(cards.size())
@@ -209,7 +224,7 @@ public class AdminServiceImpl implements AdminService {
                 .orElseThrow(() -> ResourceNotFoundException.of("Пользователь", adminUserId));
 
         Category category = resolveOrCreateCategory(admin, normalizedCategory);
-        deckRepository.save(Deck.builder()
+        Deck created = deckRepository.save(Deck.builder()
                 .user(admin)
                 .title(normalizedTitle)
                 .description(description)
@@ -217,6 +232,12 @@ public class AdminServiceImpl implements AdminService {
                 .category(category)
                 .build());
 
+        log.info(
+                "Админ: создана публичная колода: adminUserId={}, deckId={}, title={}",
+                adminUserId,
+                created.getId(),
+                created.getTitle()
+        );
         return AdminBulkDeckResponse.builder()
                 .decksCreated(1)
                 .cardsCreated(0)
@@ -232,143 +253,8 @@ public class AdminServiceImpl implements AdminService {
         if (!deck.isPublic()) {
             throw new AccessDeniedException("Это не публичная колода");
         }
+        log.info("Админ: удалена публичная колода: deckId={}, title={}", deckId, deck.getTitle());
         deckRepository.delete(deck);
-    }
-
-    private List<Card> parseCards(MultipartFile file) {
-        List<Card> cards = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
-            String line;
-            boolean headerChecked = false;
-            while ((line = reader.readLine()) != null) {
-                String trimmed = line.trim();
-                if (trimmed.isEmpty()) {
-                    continue;
-                }
-                String[] parts = splitCsvLine(trimmed);
-                if (!headerChecked) {
-                    headerChecked = true;
-                    String first = parts.length > 0 ? parts[0].trim().toLowerCase() : "";
-                    String second = parts.length > 1 ? parts[1].trim().toLowerCase() : "";
-                    if (("front".equals(first) || "вопрос".equals(first)) &&
-                            ("back".equals(second) || "ответ".equals(second))) {
-                        continue;
-                    }
-                }
-                if (parts.length < 2) {
-                    continue;
-                }
-                String front = parts[0].trim();
-                String back = parts[1].trim();
-                String hint = parts.length >= 3 ? parts[2].trim() : null;
-                if (front.isEmpty() || back.isEmpty()) {
-                    continue;
-                }
-                cards.add(Card.builder()
-                        .front(front)
-                        .back(back)
-                        .hint(hint == null || hint.isEmpty() ? null : hint)
-                        .build());
-            }
-        } catch (IOException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Не удалось прочитать CSV");
-        }
-        return cards;
-    }
-
-    private CsvDeckData parseDeckCsv(MultipartFile file) {
-        String title = null;
-        String description = null;
-        String categoryName = null;
-        boolean isPublic = false;
-        List<Card> cards = new ArrayList<>();
-
-        try (BufferedReader reader = new BufferedReader(
-                new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
-            String line;
-            boolean cardsSectionStarted = false;
-            boolean headerChecked = false;
-
-            while ((line = reader.readLine()) != null) {
-                String trimmed = line.trim();
-                if (trimmed.isEmpty()) {
-                    continue;
-                }
-                String[] parts = splitCsvLine(trimmed);
-                if (!cardsSectionStarted) {
-                    String key = normalizeToken(parts.length > 0 ? parts[0] : "");
-                    if (isMetaKey(key) && parts.length >= 2) {
-                        String value = parts[1].trim();
-                        if ("title".equals(key) || "название".equals(key) || "deck".equals(key)) {
-                            title = value;
-                            continue;
-                        }
-                        if ("description".equals(key) || "описание".equals(key)) {
-                            description = value;
-                            continue;
-                        }
-                        if ("category".equals(key) || "тип".equals(key) || "категория".equals(key)) {
-                            categoryName = value;
-                            continue;
-                        }
-                        if ("public".equals(key) || "ispublic".equals(key) || "публичная".equals(key)) {
-                            isPublic = parseBoolean(value);
-                            continue;
-                        }
-                    }
-                    cardsSectionStarted = true;
-                }
-
-                if (!headerChecked) {
-                    headerChecked = true;
-                    String first = normalizeToken(parts.length > 0 ? parts[0] : "");
-                    String second = normalizeToken(parts.length > 1 ? parts[1] : "");
-                    if (("front".equals(first) || "вопрос".equals(first) || "название".equals(first)) &&
-                            ("back".equals(second) || "ответ".equals(second))) {
-                        continue;
-                    }
-                }
-                if (parts.length < 2) {
-                    continue;
-                }
-                String front = parts[0].trim();
-                String back = parts[1].trim();
-                String hint = parts.length >= 3 ? parts[2].trim() : null;
-                if (front.isEmpty() || back.isEmpty()) {
-                    continue;
-                }
-                cards.add(Card.builder()
-                        .front(front)
-                        .back(back)
-                        .hint(hint == null || hint.isEmpty() ? null : hint)
-                        .build());
-            }
-        } catch (IOException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Не удалось прочитать CSV");
-        }
-
-        return new CsvDeckData(title, description, categoryName, isPublic, cards);
-    }
-
-    private String[] splitCsvLine(String line) {
-        if (line.contains(";")) {
-            return line.split(";", -1);
-        }
-        return line.split(",", -1);
-    }
-
-    private String extractTitleFromFile(MultipartFile file) {
-        String name = file.getOriginalFilename();
-        if (name == null || name.trim().isEmpty()) {
-            return "Новая колода";
-        }
-        String trimmed = name.trim();
-        int dotIdx = trimmed.toLowerCase(Locale.ROOT).lastIndexOf(".csv");
-        if (dotIdx > 0) {
-            return trimmed.substring(0, dotIdx);
-        }
-        return trimmed;
     }
 
     private Category resolveOrCreateCategory(User user, String categoryName) {
@@ -379,30 +265,5 @@ public class AdminServiceImpl implements AdminService {
                         .user(user)
                         .name(categoryName)
                         .build()));
-    }
-
-    private boolean isMetaKey(String key) {
-        return "title".equals(key) || "название".equals(key) || "deck".equals(key)
-                || "description".equals(key) || "описание".equals(key)
-                || "category".equals(key) || "тип".equals(key) || "категория".equals(key)
-                || "public".equals(key) || "ispublic".equals(key) || "публичная".equals(key);
-    }
-
-    private boolean parseBoolean(String value) {
-        String normalized = normalizeToken(value);
-        return "true".equals(normalized) || "1".equals(normalized) || "yes".equals(normalized) || "да".equals(normalized);
-    }
-
-    private String normalizeToken(String value) {
-        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
-    }
-
-    private record CsvDeckData(
-            String title,
-            String description,
-            String categoryName,
-            boolean isPublic,
-            List<Card> cards
-    ) {
     }
 }

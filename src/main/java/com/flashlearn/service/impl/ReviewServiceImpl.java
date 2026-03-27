@@ -19,6 +19,7 @@ import com.flashlearn.repository.UserRepository;
 import com.flashlearn.repository.UserStudySettingsRepository;
 import com.flashlearn.service.ReviewService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +36,7 @@ import java.util.stream.Collectors;
 /**
  * Реализация сервиса интервального повторения
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ReviewServiceImpl implements ReviewService {
@@ -186,6 +188,13 @@ public class ReviewServiceImpl implements ReviewService {
 
         reviewProgressRepository.save(progress);
 
+        log.debug(
+                "Оценка повторения: userId={}, cardId={}, deckId={}, quality={}",
+                userId,
+                card.getId(),
+                deck.getId(),
+                request.getQuality()
+        );
         return ReviewResponse.builder()
                 .cardId(card.getId())
                 .intervalDays(progress.getIntervalDays())

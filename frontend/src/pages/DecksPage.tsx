@@ -5,7 +5,7 @@ import { WelcomeModal } from '../components/WelcomeModal'
 import { api } from '../lib/api'
 import { useAuthStore } from '../store/authStore'
 import { toast } from '../store/toastStore'
-import type { Category, Deck, PageResponse, ReviewStats } from '../types/api'
+import type { Category, Deck, DeckImportCsvResponse, PageResponse, ReviewStats } from '../types/api'
 
 const PAGE_SIZE = 8
 
@@ -79,7 +79,7 @@ export function DecksPage() {
   const [filterCategoryId, setFilterCategoryId] = useState<number | null>(null)
 
   const [searchInput, setSearchInput] = useState('')
-  const [searchQ, setSearchQ] = useState('')          // debounced value sent to API
+  const [searchQ, setSearchQ] = useState('')          
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [myDecks, setMyDecks] = useState<Deck[]>([])
@@ -105,6 +105,9 @@ export function DecksPage() {
   const [cloningDeckId, setCloningDeckId] = useState<number | null>(null)
   const [duplicateCloneModalOpen, setDuplicateCloneModalOpen] = useState(false)
   const [createDeckSaving, setCreateDeckSaving] = useState(false)
+  const [csvImporting, setCsvImporting] = useState(false)
+  const [csvFormatHelpOpen, setCsvFormatHelpOpen] = useState(false)
+  const csvImportInputRef = useRef<HTMLInputElement>(null)
 
   const loadCategories = useCallback(async () => {
     const { data } = await api.get<Category[]>('/api/categories')
@@ -186,6 +189,24 @@ export function DecksPage() {
   const applyFilter = (categoryId: number | null) => {
     setFilterCategoryId(categoryId)
     void loadMyDecks(0, categoryId, searchQ)
+  }
+
+  const importDeckFromCsv = async (file: File): Promise<void> => {
+    setCsvImporting(true)
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      const { data } = await api.post<DeckImportCsvResponse>('/api/decks/import-csv', form)
+      await Promise.all([loadCategories(), loadMyDecks(0, filterCategoryId, searchQ), loadStudyMetrics()])
+      toast.success(`Колода «${data.deck.title}» импортирована (${data.cardsImported} карточек).`)
+    } catch {
+      toast.error('Не удалось импортировать CSV')
+    } finally {
+      setCsvImporting(false)
+      if (csvImportInputRef.current) {
+        csvImportInputRef.current.value = ''
+      }
+    }
   }
 
   const createDeck = async (): Promise<void> => {
@@ -275,6 +296,51 @@ export function DecksPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-6">
+      {csvFormatHelpOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="csv-format-title"
+          onClick={() => setCsvFormatHelpOpen(false)}
+        >
+          <div
+            className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 id="csv-format-title" className="text-lg font-semibold text-slate-900">
+              Структура CSV для импорта
+            </h2>
+            <p className="mt-2 text-sm text-slate-600">
+              Разделитель полей — точка с запятой. Кодировка UTF-8. Сначала метаданные колоды, затем пустая строка,
+              заголовок таблицы карточек и строки с данными.
+            </p>
+            <pre className="mt-4 overflow-x-auto rounded-lg bg-slate-900 p-3 text-left text-xs leading-relaxed text-slate-100">
+              {`title;Название колоды
+description;Описание (можно пустым)
+category;Категория
+
+front;back;hint
+Вопрос или лицевая сторона;Ответ;Подсказка (необязательно)
+...`}
+            </pre>
+            <p className="mt-3 text-xs text-slate-500">
+              Строка <span className="font-mono text-slate-700">front;back;hint</span> — заголовок; дальше только
+              карточки. Если вы укажете в <span className="font-mono text-slate-700">category</span> название, которого
+              ещё нет среди ваших категорий, оно будет создано{' '}
+              <span className="font-medium text-slate-700">только у вас</span> — в общий список платформы и к другим
+              пользователям оно не добавляется.
+            </p>
+            <button
+              type="button"
+              className="mt-5 w-full rounded-xl bg-slate-900 py-2.5 text-sm font-medium text-white transition hover:bg-slate-800"
+              onClick={() => setCsvFormatHelpOpen(false)}
+            >
+              Закрыть
+            </button>
+          </div>
+        </div>
+      ) : null}
       {duplicateCloneModalOpen ? (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
@@ -423,13 +489,12 @@ export function DecksPage() {
       >
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-sm font-medium text-slate-800">Новая колода</h2>
-          <span className="text-[11px] text-slate-400">личная, только у вас</span>
+          <span className="text-[11px] text-slate-400">Видна только вам</span>
         </div>
 
         <p className="mt-1 text-[11px] leading-snug text-slate-500">
           Название и категория обязательны. Описание — по желанию.
         </p>
-
 
         <div className="mt-3 grid gap-2.5 sm:grid-cols-2">
           <label className="block sm:col-span-1">
@@ -481,13 +546,44 @@ export function DecksPage() {
           <p className="mt-2 text-xs text-amber-800">Сначала нужна хотя бы одна категория — обратитесь к администратору.</p>
         ) : null}
 
-        <button
-          type="submit"
-          disabled={createDeckSaving || categories.length === 0}
-          className="mt-3 w-full rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
-        >
-          {createDeckSaving ? 'Создаём…' : 'Создать колоду'}
-        </button>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <input
+            ref={csvImportInputRef}
+            type="file"
+            accept=".csv,text/csv"
+            className="sr-only"
+            aria-hidden
+            onChange={(e) => {
+              const f = e.target.files?.[0]
+              if (f) void importDeckFromCsv(f)
+            }}
+          />
+          <button
+            type="submit"
+            disabled={createDeckSaving || categories.length === 0}
+            className="w-full rounded-lg bg-slate-900 px-3 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+          >
+            {createDeckSaving ? 'Создаём…' : 'Создать колоду'}
+          </button>
+          <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+            <button
+              type="button"
+              disabled={csvImporting || initialLoading}
+              onClick={() => csvImportInputRef.current?.click()}
+              className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-800 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 sm:flex-none"
+            >
+              {csvImporting ? 'Импорт…' : 'Импорт из CSV'}
+            </button>
+            <button
+              type="button"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-slate-300 bg-white text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
+              aria-label="Какой формат у CSV для импорта"
+              onClick={() => setCsvFormatHelpOpen(true)}
+            >
+              ?
+            </button>
+          </div>
+        </div>
       </form>
 
       <div className="grid gap-6 md:grid-cols-2">

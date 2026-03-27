@@ -16,6 +16,7 @@ import com.flashlearn.repository.CategoryPresetRepository;
 import com.flashlearn.security.JwtService;
 import com.flashlearn.service.AuthService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -30,6 +31,7 @@ import java.util.UUID;
 /**
  * Реализация сервиса аутентификации
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
@@ -66,6 +68,7 @@ public class AuthServiceImpl implements AuthService {
 
         userRepository.save(user);
         createDefaultCategories(user);
+        log.info("Зарегистрирован новый пользователь: userId={}, email={}", user.getId(), user.getEmail());
         return buildAuthResponse(user);
     }
 
@@ -86,6 +89,7 @@ public class AuthServiceImpl implements AuthService {
         User user = userRepository.findByEmail(request.getEmail())
                 .orElseThrow();
 
+        log.info("Вход в систему: userId={}, email={}", user.getId(), user.getEmail());
         return buildAuthResponse(user);
     }
 
@@ -111,7 +115,9 @@ public class AuthServiceImpl implements AuthService {
         stored.setRevoked(true);
         refreshTokenRepository.save(stored);
 
-        return buildAuthResponse(stored.getUser());
+        User user = stored.getUser();
+        log.info("Обновление пары токенов (refresh): userId={}", user.getId());
+        return buildAuthResponse(user);
     }
 
     /**
@@ -121,6 +127,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public void logout(Long userId) {
         refreshTokenRepository.revokeAllByUserId(userId);
+        log.info("Выход из системы: userId={}", userId);
     }
 
     /**

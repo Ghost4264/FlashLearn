@@ -1,6 +1,7 @@
 package com.flashlearn.controller;
 
 import com.flashlearn.dto.request.DeckRequest;
+import com.flashlearn.dto.response.DeckImportCsvResponse;
 import com.flashlearn.dto.response.DeckResponse;
 import com.flashlearn.dto.response.PageResponse;
 import com.flashlearn.entity.User;
@@ -28,7 +29,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * Контроллер управления колодами карточек
@@ -101,6 +104,15 @@ public class DeckController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"deck-" + id + ".csv\"")
                 .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
                 .body(bytes);
+    }
+
+    @Operation(summary = "Импорт личной колоды из CSV", description = "Тот же формат, что и при экспорте личной колоды; колода всегда личная")
+    @PostMapping(value = "/import-csv", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<DeckImportCsvResponse> importPersonalDeckFromCsv(
+            @AuthenticationPrincipal User user,
+            @RequestPart("file") MultipartFile file) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(deckService.importPersonalDeckFromCsv(user.getId(), file));
     }
 
     /**

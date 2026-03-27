@@ -77,6 +77,11 @@ export type AdminDeckImportResponse = {
   importedCards: number
 }
 
+export type DeckImportCsvResponse = {
+  deck: Deck
+  cardsImported: number
+}
+
 export type AdminBulkDeckResponse = {
   decksCreated: number
   cardsCreated: number

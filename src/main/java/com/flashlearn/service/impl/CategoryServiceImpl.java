@@ -10,6 +10,7 @@ import com.flashlearn.repository.CategoryRepository;
 import com.flashlearn.repository.UserRepository;
 import com.flashlearn.service.CategoryService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CategoryServiceImpl implements CategoryService {
@@ -47,6 +49,7 @@ public class CategoryServiceImpl implements CategoryService {
                         .name(request.getName().trim())
                         .build()
         );
+        log.info("Создана пользовательская категория: userId={}, categoryId={}, name={}", userId, saved.getId(), saved.getName());
         return CategoryResponse.builder().id(saved.getId()).name(saved.getName()).build();
     }
 
@@ -56,6 +59,7 @@ public class CategoryServiceImpl implements CategoryService {
         Category category = categoryRepository.findByIdAndUserId(categoryId, userId)
                 .orElseThrow(() -> new AccessDeniedException(
                         "Категория не найдена или не принадлежит пользователю"));
+        log.info("Удалена пользовательская категория: userId={}, categoryId={}, name={}", userId, categoryId, category.getName());
         categoryRepository.delete(category);
     }
 }
