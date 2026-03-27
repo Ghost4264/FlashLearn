@@ -261,8 +261,8 @@ export function DeckDetailPage() {
             </div>
           </form>
         ) : (
-          <div className="flex items-start justify-between gap-4">
-            <div>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
               <h1 className="text-2xl font-semibold">{deck?.title}</h1>
               {deck?.categoryName ? (
                 <span className="mt-1 inline-block rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">
@@ -272,7 +272,7 @@ export function DeckDetailPage() {
               {deck?.description ? <p className="mt-1 text-sm text-slate-500">{deck.description}</p> : null}
               {deck?.public ? <span className="mt-1 inline-block text-xs text-slate-400">Публичная</span> : null}
             </div>
-            <div className="mt-1 flex shrink-0 flex-wrap items-center gap-1">
+            <div className="flex shrink-0 flex-wrap items-center gap-1">
               {deck && deck.dueCardCount > 0 ? (
                 <button
                   className="flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white"

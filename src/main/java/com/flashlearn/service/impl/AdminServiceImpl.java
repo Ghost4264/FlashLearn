@@ -19,11 +19,15 @@ import com.flashlearn.repository.DeckRepository;
 import com.flashlearn.repository.UserRepository;
 import com.flashlearn.service.AdminService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
+
+import static com.flashlearn.config.CacheConfig.PUBLIC_DECK_CATEGORIES;
+import static com.flashlearn.config.CacheConfig.PUBLIC_DECKS;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -81,6 +85,7 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = {PUBLIC_DECKS, PUBLIC_DECK_CATEGORIES}, allEntries = true)
     public AdminDeckImportResponse importDeckFromCsv(
             Long userId,
             String title,
@@ -137,6 +142,7 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = {PUBLIC_DECKS, PUBLIC_DECK_CATEGORIES}, allEntries = true)
     public AdminBulkDeckResponse importPublicDeckFromCsv(Long adminUserId, MultipartFile file) {
         if (file == null || file.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "CSV файл обязателен");
@@ -189,6 +195,7 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = {PUBLIC_DECKS, PUBLIC_DECK_CATEGORIES}, allEntries = true)
     public AdminBulkDeckResponse createPublicDeck(Long adminUserId, String title, String description, String categoryName) {
         String normalizedTitle = title == null ? "" : title.trim();
         if (normalizedTitle.isEmpty()) {
@@ -218,6 +225,7 @@ public class AdminServiceImpl implements AdminService {
 
     @Override
     @Transactional
+    @CacheEvict(cacheNames = {PUBLIC_DECKS, PUBLIC_DECK_CATEGORIES}, allEntries = true)
     public void deletePublicDeck(Long deckId) {
         Deck deck = deckRepository.findById(deckId)
                 .orElseThrow(() -> ResourceNotFoundException.of("Колода", deckId));

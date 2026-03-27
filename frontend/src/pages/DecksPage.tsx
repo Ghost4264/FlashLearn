@@ -89,7 +89,7 @@ export function DecksPage() {
     const { data } = await api.get<PageResponse<Deck>>(
       `/api/decks?page=${page}&size=${PAGE_SIZE}${catParam}${qParam}`,
     )
-    setMyDecks(data.content)
+    setMyDecks(data.content ?? [])
     setMyPage(data.page)
     setMyTotalPages(data.totalPages)
     setMyTotal(data.totalElements)
