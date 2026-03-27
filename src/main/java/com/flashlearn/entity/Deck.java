@@ -90,6 +90,13 @@ public class Deck {
     private Category category;
 
     /**
+     * ID исходной публичной колоды, если эта колода была склонирована
+     * null — если колода создана вручную
+     */
+    @Column(name = "cloned_from_id")
+    private Long clonedFromId;
+
+    /**
      * Карточки в этой колоде
      * orphanRemoval — карточка удалённая из списка удаляется из БД
      */
