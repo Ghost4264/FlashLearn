@@ -64,8 +64,8 @@ public class DeckServiceImpl implements DeckService {
     @Override
     @Transactional(readOnly = true)
     @Cacheable(value = PUBLIC_DECKS,
-            key = "#categoryName + ':' + #q + ':' + #pageable.pageNumber + ':' + #pageable.pageSize + ':' + #pageable.sort.toString()")
-    public PageResponse<DeckResponse> getPublicDecks(String categoryName, String q, Pageable pageable) {
+            key = "#categoryName + ':' + #q + ':' + #pageable.pageNumber + ':' + #pageable.pageSize + ':' + #pageable.sort.toString() + ':' + #viewerUserId")
+    public PageResponse<DeckResponse> getPublicDecks(String categoryName, String q, Pageable pageable, Long viewerUserId) {
         String search = StringUtils.hasText(q) ? q.trim() : null;
         String category = StringUtils.hasText(categoryName) ? categoryName.trim() : null;
         var page = deckRepository.findAllPublicFiltered(category, search, pageable);
