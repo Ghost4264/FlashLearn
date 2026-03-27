@@ -58,4 +58,15 @@ public interface DeckRepository extends JpaRepository<Deck, Long> {
      */
     @Query("SELECT DISTINCT d.category.name FROM Deck d WHERE d.isPublic = true AND d.category IS NOT NULL ORDER BY d.category.name")
     List<String> findDistinctCategoryNamesInPublicDecks();
+
+    /**
+     * Проверяет, склонировал ли пользователь уже данную публичную колоду
+     */
+    boolean existsByUserIdAndClonedFromId(Long userId, Long clonedFromId);
+
+    /**
+     * Возвращает множество ID публичных колод, которые пользователь уже склонировал
+     */
+    @Query("SELECT d.clonedFromId FROM Deck d WHERE d.user.id = :userId AND d.clonedFromId IS NOT NULL AND d.clonedFromId IN :publicDeckIds")
+    List<Long> findClonedFromIdsByUserIdAndPublicDeckIds(@Param("userId") Long userId, @Param("publicDeckIds") List<Long> publicDeckIds);
 }
