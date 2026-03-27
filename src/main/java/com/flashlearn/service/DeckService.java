@@ -15,7 +15,7 @@ public interface DeckService {
     /**
      * Получить публичные колоды постранично с фильтром по категории
      */
-    PageResponse<DeckResponse> getPublicDecks(String categoryName, String q, Pageable pageable);
+    PageResponse<DeckResponse> getPublicDecks(String categoryName, String q, Pageable pageable, Long viewerUserId);
 
     /**
      * Список уникальных категорий публичных колод

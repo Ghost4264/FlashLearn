@@ -24,6 +24,7 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -57,12 +58,23 @@ public class DeckServiceImpl implements DeckService {
      */
     @Override
     @Transactional(readOnly = true)
-    public PageResponse<DeckResponse> getPublicDecks(String categoryName, String q, Pageable pageable) {
+    public PageResponse<DeckResponse> getPublicDecks(String categoryName, String q, Pageable pageable, Long viewerUserId) {
         String search = StringUtils.hasText(q) ? q.trim() : null;
         String category = StringUtils.hasText(categoryName) ? categoryName.trim() : null;
         var page = deckRepository.findAllPublicFiltered(category, search, pageable);
         var counts = bulkCounts(page.getContent(), null);
-        return PageResponse.of(page.map(deck -> toResponse(deck, counts)));
+
+        Set<Long> alreadyClonedIds = viewerUserId != null
+                ? Set.copyOf(deckRepository.findClonedFromIdsByUserIdAndPublicDeckIds(
+                        viewerUserId,
+                        page.getContent().stream().map(Deck::getId).toList()))
+                : Set.of();
+
+        return PageResponse.of(page.map(deck -> {
+            DeckResponse response = toResponse(deck, counts);
+            response.setAlreadyCloned(alreadyClonedIds.contains(deck.getId()));
+            return response;
+        }));
     }
 
     @Override
