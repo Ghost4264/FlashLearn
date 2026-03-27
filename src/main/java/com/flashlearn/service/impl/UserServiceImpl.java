@@ -15,6 +15,7 @@ import com.flashlearn.repository.UserRepository;
 import com.flashlearn.repository.UserStudySettingsRepository;
 import com.flashlearn.service.UserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +23,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Реализация сервиса управления профилем пользователя
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
@@ -51,7 +53,9 @@ public class UserServiceImpl implements UserService {
     public UserResponse updateMe(Long userId, UpdateUserRequest request) {
         User user = findUser(userId);
         user.setName(request.getName());
-        return userMapper.toResponse(userRepository.save(user));
+        userRepository.save(user);
+        log.info("Обновлён профиль: userId={}", userId);
+        return userMapper.toResponse(user);
     }
 
     /**
@@ -72,6 +76,7 @@ public class UserServiceImpl implements UserService {
 
         // Инвалидируем все сессии — пользователю придётся войти заново
         refreshTokenRepository.revokeAllByUserId(userId);
+        log.info("Смена пароля: userId={}", userId);
     }
 
     @Override
@@ -100,6 +105,12 @@ public class UserServiceImpl implements UserService {
         settings.setNewCardsPerSession(request.getNewCardsPerSession());
         settings.setIntervalModifier(request.getIntervalModifier());
         UserStudySettings saved = userStudySettingsRepository.save(settings);
+        log.info(
+                "Обновлены настройки учёбы: userId={}, newCardsPerSession={}, intervalModifier={}",
+                userId,
+                saved.getNewCardsPerSession(),
+                saved.getIntervalModifier()
+        );
         return StudySettingsResponse.builder()
                 .newCardsPerSession(saved.getNewCardsPerSession())
                 .intervalModifier(saved.getIntervalModifier())

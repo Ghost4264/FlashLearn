@@ -18,6 +18,7 @@ export type Deck = {
   public: boolean
   categoryId: number | null
   categoryName: string | null
+  alreadyCloned?: boolean
 }
 
 export type PageResponse<T> = {
@@ -51,6 +52,12 @@ export type ReviewResponse = {
   nextReviewAt: string
 }
 
+export type ReviewStats = {
+  reviewedToday: number
+  reviewedThisWeek: number
+  streakDays: number
+}
+
 export type UserProfile = {
   id: number
   email: string
@@ -68,6 +75,11 @@ export type StudySettings = {
 export type AdminDeckImportResponse = {
   deck: Deck
   importedCards: number
+}
+
+export type DeckImportCsvResponse = {
+  deck: Deck
+  cardsImported: number
 }
 
 export type AdminBulkDeckResponse = {

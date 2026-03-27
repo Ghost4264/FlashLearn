@@ -58,5 +58,6 @@ app:
 
 logging:
   level:
-    com.flashlearn: DEBUG
+    com.flashlearn: INFO
+    com.flashlearn.service.impl.ReviewServiceImpl: DEBUG
     org.springframework.security: INFO

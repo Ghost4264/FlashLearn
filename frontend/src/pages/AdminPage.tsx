@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import type { AdminBulkDeckResponse, Category, Deck, PageResponse, UserProfile } from '../types/api'
@@ -27,18 +27,16 @@ export function AdminPage() {
   const [csvMessage, setCsvMessage] = useState<string | null>(null)
   const [showCsvExample, setShowCsvExample] = useState(false)
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     const { data } = await api.get<Category[]>('/api/admin/categories/presets')
     setCategories(data)
-    if (!manualCategoryName && data.length > 0) {
-      setManualCategoryName(data[0].name)
-    }
-  }
+    setManualCategoryName((prev) => (prev ? prev : data.length > 0 ? data[0].name : ''))
+  }, [])
 
-  const loadPublicDecks = async () => {
+  const loadPublicDecks = useCallback(async () => {
     const { data } = await api.get<PageResponse<Deck>>('/api/decks/public?size=100')
     setPublicDecks(data.content)
-  }
+  }, [])
 
   useEffect(() => {
     void (async () => {
@@ -55,7 +53,7 @@ export function AdminPage() {
         setLoading(false)
       }
     })()
-  }, [])
+  }, [loadData, loadPublicDecks])
 
   const handleAddPreset = async (e: React.FormEvent) => {
     e.preventDefault()

@@ -2,6 +2,7 @@ package com.flashlearn.service;
 
 import com.flashlearn.dto.request.ReviewRequest;
 import com.flashlearn.dto.response.ReviewResponse;
+import com.flashlearn.dto.response.ReviewStatsResponse;
 import com.flashlearn.dto.response.StudyCardResponse;
 
 import java.util.List;
@@ -22,6 +23,11 @@ public interface ReviewService {
      * Получить количество карточек к повторению
      */
     long getDueCount(Long userId);
+
+    /**
+     * Статистика повторений: сегодня, за текущую неделю, серия дней
+     */
+    ReviewStatsResponse getStats(Long userId);
 
     /**
      * Оценить карточку после повторения

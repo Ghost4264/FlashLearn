@@ -1,9 +1,11 @@
 package com.flashlearn.service;
 
 import com.flashlearn.dto.request.DeckRequest;
+import com.flashlearn.dto.response.DeckImportCsvResponse;
 import com.flashlearn.dto.response.DeckResponse;
 import com.flashlearn.dto.response.PageResponse;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.multipart.MultipartFile;
 
 public interface DeckService {
 
@@ -46,4 +48,14 @@ public interface DeckService {
      * Клонировать публичную колоду — создаёт копию колоды и всех карточек для пользователя
      */
     DeckResponse clone(Long deckId, Long userId);
+
+    /**
+     * Экспорт личной (непубличной) колоды владельца в CSV UTF-8 с BOM для импорта в другом месте
+     */
+    byte[] exportPersonalDeckCsv(Long deckId, Long userId);
+
+    /**
+     * Импорт колоды из CSV в личную коллекцию; колода всегда непубличная (поле public в файле игнорируется)
+     */
+    DeckImportCsvResponse importPersonalDeckFromCsv(Long userId, MultipartFile file);
 }

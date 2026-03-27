@@ -2,6 +2,7 @@ package com.flashlearn.controller;
 
 import com.flashlearn.dto.request.ReviewRequest;
 import com.flashlearn.dto.response.ReviewResponse;
+import com.flashlearn.dto.response.ReviewStatsResponse;
 import com.flashlearn.dto.response.StudyCardResponse;
 import com.flashlearn.entity.User;
 import com.flashlearn.service.ReviewService;
@@ -57,6 +58,12 @@ public class ReviewController {
     @GetMapping("/due/count")
     public ResponseEntity<Map<String, Long>> getDueCount(@AuthenticationPrincipal User user) {
         return ResponseEntity.ok(Map.of("count", reviewService.getDueCount(user.getId())));
+    }
+
+    @Operation(summary = "Статистика учёбы", description = "Сегодня, за неделю, серия дней с повторениями")
+    @GetMapping("/stats")
+    public ResponseEntity<ReviewStatsResponse> getStats(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(reviewService.getStats(user.getId()));
     }
 
     /**

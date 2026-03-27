@@ -2,6 +2,7 @@ package com.flashlearn.service.impl;
 
 import com.flashlearn.dto.request.ReviewRequest;
 import com.flashlearn.dto.response.ReviewResponse;
+import com.flashlearn.dto.response.ReviewStatsResponse;
 import com.flashlearn.dto.response.StudyCardResponse;
 import com.flashlearn.entity.Card;
 import com.flashlearn.entity.Deck;
@@ -18,17 +19,24 @@ import com.flashlearn.repository.UserRepository;
 import com.flashlearn.repository.UserStudySettingsRepository;
 import com.flashlearn.service.ReviewService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Реализация сервиса интервального повторения
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ReviewServiceImpl implements ReviewService {
@@ -111,6 +119,48 @@ public class ReviewServiceImpl implements ReviewService {
         return due + newCount;
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public ReviewStatsResponse getStats(Long userId) {
+        LocalDate today = LocalDate.now();
+        LocalDateTime startToday = today.atStartOfDay();
+        LocalDateTime endToday = today.plusDays(1).atStartOfDay();
+        long reviewedToday = reviewProgressRepository.countReviewsBetween(userId, startToday, endToday);
+
+        LocalDate weekStart = today.with(DayOfWeek.MONDAY);
+        LocalDateTime startWeek = weekStart.atStartOfDay();
+        long reviewedThisWeek = reviewProgressRepository.countReviewsBetween(userId, startWeek, endToday);
+
+        int streak = computeStreakDays(userId);
+        return ReviewStatsResponse.builder()
+                .reviewedToday(reviewedToday)
+                .reviewedThisWeek(reviewedThisWeek)
+                .streakDays(streak)
+                .build();
+    }
+
+    private int computeStreakDays(Long userId) {
+        List<java.sql.Date> raw = reviewProgressRepository.findDistinctReviewDates(userId);
+        if (raw.isEmpty()) {
+            return 0;
+        }
+        Set<LocalDate> dates = raw.stream()
+                .map(java.sql.Date::toLocalDate)
+                .collect(Collectors.toCollection(HashSet::new));
+        LocalDate today = LocalDate.now();
+        LocalDate anchor = dates.contains(today) ? today : today.minusDays(1);
+        if (!dates.contains(anchor)) {
+            return 0;
+        }
+        int streak = 0;
+        LocalDate cursor = anchor;
+        while (dates.contains(cursor)) {
+            streak++;
+            cursor = cursor.minusDays(1);
+        }
+        return streak;
+    }
+
     /**
      * Принимает оценку ответа, применяет SM-2 и сохраняет новый прогресс
      */
@@ -138,6 +188,13 @@ public class ReviewServiceImpl implements ReviewService {
 
         reviewProgressRepository.save(progress);
 
+        log.debug(
+                "Оценка повторения: userId={}, cardId={}, deckId={}, quality={}",
+                userId,
+                card.getId(),
+                deck.getId(),
+                request.getQuality()
+        );
         return ReviewResponse.builder()
                 .cardId(card.getId())
                 .intervalDays(progress.getIntervalDays())

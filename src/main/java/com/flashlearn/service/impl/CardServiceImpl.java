@@ -12,6 +12,7 @@ import com.flashlearn.repository.CardRepository;
 import com.flashlearn.repository.DeckRepository;
 import com.flashlearn.service.CardService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  * Реализация сервиса управления карточками
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CardServiceImpl implements CardService {
@@ -56,7 +58,9 @@ public class CardServiceImpl implements CardService {
                 .position(request.getPosition())
                 .build();
 
-        return cardMapper.toResponse(cardRepository.save(card));
+        card = cardRepository.save(card);
+        log.info("Создана карточка: userId={}, deckId={}, cardId={}", userId, deckId, card.getId());
+        return cardMapper.toResponse(card);
     }
 
     /**
@@ -72,7 +76,9 @@ public class CardServiceImpl implements CardService {
         card.setHint(request.getHint());
         card.setPosition(request.getPosition());
 
-        return cardMapper.toResponse(cardRepository.save(card));
+        card = cardRepository.save(card);
+        log.info("Обновлена карточка: userId={}, deckId={}, cardId={}", userId, card.getDeck().getId(), cardId);
+        return cardMapper.toResponse(card);
     }
 
     /**
@@ -82,6 +88,7 @@ public class CardServiceImpl implements CardService {
     @Transactional
     public void delete(Long cardId, Long userId) {
         Card card = findOwnedCard(cardId, userId);
+        log.info("Удалена карточка: userId={}, deckId={}, cardId={}", userId, card.getDeck().getId(), cardId);
         cardRepository.delete(card);
     }
 

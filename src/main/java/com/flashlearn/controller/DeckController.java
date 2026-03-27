@@ -1,6 +1,7 @@
 package com.flashlearn.controller;
 
 import com.flashlearn.dto.request.DeckRequest;
+import com.flashlearn.dto.response.DeckImportCsvResponse;
 import com.flashlearn.dto.response.DeckResponse;
 import com.flashlearn.dto.response.PageResponse;
 import com.flashlearn.entity.User;
@@ -16,7 +17,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -26,7 +29,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * Контроллер управления колодами карточек
@@ -87,6 +92,27 @@ public class DeckController {
             @Parameter(description = "ID колоды") @PathVariable Long id,
             @AuthenticationPrincipal User user) {
         return ResponseEntity.ok(deckService.getById(id, user.getId()));
+    }
+
+    @Operation(summary = "Экспорт личной колоды в CSV", description = "Только для непубличных колод владельца; UTF-8 с BOM")
+    @GetMapping("/{id}/export/csv")
+    public ResponseEntity<byte[]> exportPersonalDeckCsv(
+            @Parameter(description = "ID колоды") @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
+        byte[] bytes = deckService.exportPersonalDeckCsv(id, user.getId());
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"deck-" + id + ".csv\"")
+                .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
+                .body(bytes);
+    }
+
+    @Operation(summary = "Импорт личной колоды из CSV", description = "Тот же формат, что и при экспорте личной колоды; колода всегда личная")
+    @PostMapping(value = "/import-csv", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<DeckImportCsvResponse> importPersonalDeckFromCsv(
+            @AuthenticationPrincipal User user,
+            @RequestPart("file") MultipartFile file) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(deckService.importPersonalDeckFromCsv(user.getId(), file));
     }
 
     /**

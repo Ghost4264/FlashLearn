@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { api } from '../lib/api'
+import { downloadPersonalDeckCsv } from '../lib/downloadDeckCsv'
+import { toast } from '../store/toastStore'
 import type { Card, Category, Deck, PageResponse } from '../types/api'
 
 type CardForm = { front: string; back: string; hint: string }
@@ -35,9 +37,10 @@ export function DeckDetailPage() {
   const [saving, setSaving] = useState(false)
 
   const [cardSearch, setCardSearch] = useState('')
+  const [exportingCsv, setExportingCsv] = useState(false)
   const frontInputRef = useRef<HTMLInputElement>(null)
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const [deckRes, cardsRes, catsRes] = await Promise.all([
         api.get<Deck>(`/api/decks/${deckId}`),
@@ -52,11 +55,24 @@ export function DeckDetailPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [deckId])
 
   useEffect(() => {
     void loadData()
-  }, [deckId])
+  }, [loadData])
+
+  const handleExportCsv = async (): Promise<void> => {
+    if (!deck?.title || deck.public) return
+    setExportingCsv(true)
+    try {
+      await downloadPersonalDeckCsv(deckId, deck.title)
+      toast.success('CSV сохранён — это ваша личная колода, не публичный каталог')
+    } catch {
+      toast.error('Не удалось выгрузить CSV')
+    } finally {
+      setExportingCsv(false)
+    }
+  }
 
   const startEditDeck = () => {
     if (!deck) return
@@ -270,18 +286,45 @@ export function DeckDetailPage() {
                 </span>
               ) : null}
               {deck?.description ? <p className="mt-1 text-sm text-slate-500">{deck.description}</p> : null}
-              {deck?.public ? <span className="mt-1 inline-block text-xs text-slate-400">Публичная</span> : null}
+              {deck?.public ? (
+                <span className="mt-1 inline-block text-xs text-slate-400">Публичная колода каталога — экспорт CSV недоступен</span>
+              ) : (
+                <p className="mt-1 text-xs text-slate-500">Личная колода: можно скачать карточки в CSV для резервной копии.</p>
+              )}
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-1">
-              {deck && deck.dueCardCount > 0 ? (
+              {deck ? (
                 <button
-                  className="flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-medium text-white"
+                  type="button"
+                  title={
+                    deck.dueCardCount === 0
+                      ? 'Сейчас нет карточек к повторению по этой колоде'
+                      : undefined
+                  }
+                  className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium ${
+                    deck.dueCardCount > 0
+                      ? 'bg-slate-900 text-white'
+                      : 'border border-slate-300 bg-white text-slate-600 hover:bg-slate-50'
+                  }`}
                   onClick={() => navigate(`/study?deckId=${deckId}`)}
                 >
                   Учить
-                  <span className="rounded-full bg-white px-1.5 py-0.5 text-xs font-bold text-slate-900">
-                    {deck.dueCardCount}
-                  </span>
+                  {deck.dueCardCount > 0 ? (
+                    <span className="rounded-full bg-white px-1.5 py-0.5 text-xs font-bold text-slate-900">
+                      {deck.dueCardCount}
+                    </span>
+                  ) : null}
+                </button>
+              ) : null}
+              {deck && !deck.public ? (
+                <button
+                  type="button"
+                  title="Скачать личную колоду в CSV (UTF-8), не публичный каталог"
+                  className="rounded-lg border border-slate-300 px-2.5 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                  disabled={exportingCsv}
+                  onClick={() => void handleExportCsv()}
+                >
+                  {exportingCsv ? '…' : 'Скачать CSV'}
                 </button>
               ) : null}
               <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-600">

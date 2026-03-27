@@ -63,4 +63,21 @@ public interface ReviewProgressRepository extends JpaRepository<ReviewProgress, 
     List<Object[]> countDueCardsByDeckIdIn(@Param("userId") Long userId,
                                            @Param("deckIds") List<Long> deckIds,
                                            @Param("now") LocalDateTime now);
+
+    @Query("""
+            SELECT COUNT(rp) FROM ReviewProgress rp
+            WHERE rp.user.id = :userId
+              AND rp.lastReviewAt >= :from
+              AND rp.lastReviewAt < :to
+            """)
+    long countReviewsBetween(@Param("userId") Long userId,
+                             @Param("from") LocalDateTime from,
+                             @Param("to") LocalDateTime to);
+
+    @Query(value = """
+            SELECT DISTINCT CAST(rp.last_review_at AS DATE)
+            FROM review_progress rp
+            WHERE rp.user_id = :userId AND rp.last_review_at IS NOT NULL
+            """, nativeQuery = true)
+    List<java.sql.Date> findDistinctReviewDates(@Param("userId") Long userId);
 }

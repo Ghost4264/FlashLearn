@@ -103,21 +103,24 @@ export function StudyPage() {
   }
 
   if (isDone) {
+    const emptySession = reviewed === 0 && cards.length === 0
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-6 px-4">
-        <div className="rounded-2xl bg-white p-10 shadow-md text-center max-w-sm w-full">
-          <div className="text-5xl mb-4">🎉</div>
-          <h1 className="text-2xl font-bold mb-2">Готово!</h1>
-          <p className="text-slate-600 mb-6">
-            {reviewed > 0
-              ? `Вы повторили ${reviewed} ${pluralCards(reviewed)}`
-              : 'Нет карточек для повторения сегодня'}
+        <div className="w-full max-w-sm rounded-2xl bg-white p-8 text-center shadow-md">
+          <h1 className="text-xl font-semibold text-slate-900">
+            {emptySession ? 'На сегодня всё спокойно' : 'Сессия завершена'}
+          </h1>
+          <p className="mt-2 text-sm leading-relaxed text-slate-600">
+            {emptySession
+              ? 'Сейчас нет карточек к повторению. Добавьте материал в колоды или загляните позже — мы подскажем, когда пора.'
+              : `Повторено ${reviewed} ${pluralCards(reviewed)}.`}
           </p>
           <button
-            className="w-full rounded-lg bg-slate-900 px-4 py-2.5 text-white font-medium"
-            onClick={() => navigate(backPath)}
+            type="button"
+            className="mt-6 w-full rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-medium text-white"
+            onClick={() => navigate(emptySession ? '/decks' : backPath)}
           >
-            К колодам
+            {emptySession ? 'К колодам' : deckId ? 'К колоде' : 'К колодам'}
           </button>
         </div>
       </div>
