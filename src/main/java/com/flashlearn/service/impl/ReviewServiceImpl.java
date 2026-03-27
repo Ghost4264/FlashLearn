@@ -4,12 +4,15 @@ import com.flashlearn.dto.request.ReviewRequest;
 import com.flashlearn.dto.response.ReviewResponse;
 import com.flashlearn.dto.response.StudyCardResponse;
 import com.flashlearn.entity.Card;
+import com.flashlearn.entity.Deck;
 import com.flashlearn.entity.ReviewProgress;
 import com.flashlearn.entity.User;
 import com.flashlearn.entity.UserStudySettings;
+import com.flashlearn.exception.AccessDeniedException;
 import com.flashlearn.exception.ResourceNotFoundException;
 import com.flashlearn.mapper.CardMapper;
 import com.flashlearn.repository.CardRepository;
+import com.flashlearn.repository.DeckRepository;
 import com.flashlearn.repository.ReviewProgressRepository;
 import com.flashlearn.repository.UserRepository;
 import com.flashlearn.repository.UserStudySettingsRepository;
@@ -37,6 +40,7 @@ public class ReviewServiceImpl implements ReviewService {
 
     private final ReviewProgressRepository reviewProgressRepository;
     private final CardRepository cardRepository;
+    private final DeckRepository deckRepository;
     private final UserRepository userRepository;
     private final UserStudySettingsRepository userStudySettingsRepository;
     private final CardMapper cardMapper;
@@ -65,6 +69,11 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     @Transactional(readOnly = true)
     public List<StudyCardResponse> getDueCardsByDeck(Long userId, Long deckId) {
+        Deck deck = deckRepository.findById(deckId)
+                .orElseThrow(() -> ResourceNotFoundException.of("Колода", deckId));
+        if (!deck.isPublic() && !deck.getUser().getId().equals(userId)) {
+            throw new AccessDeniedException("Нет доступа к колоде id=" + deckId);
+        }
         UserStudySettings settings = resolveSettings(userId);
         List<StudyCardResponse> result = reviewProgressRepository.findDueCardsByDeck(userId, deckId, LocalDateTime.now())
                 .stream()
@@ -110,6 +119,11 @@ public class ReviewServiceImpl implements ReviewService {
     public ReviewResponse submitReview(ReviewRequest request, Long userId) {
         Card card = cardRepository.findById(request.getCardId())
                 .orElseThrow(() -> ResourceNotFoundException.of("Карточка", request.getCardId()));
+
+        Deck deck = card.getDeck();
+        if (!deck.isPublic() && !deck.getUser().getId().equals(userId)) {
+            throw new AccessDeniedException("Нет доступа к карточке id=" + request.getCardId());
+        }
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> ResourceNotFoundException.of("Пользователь", userId));
