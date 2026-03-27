@@ -16,10 +16,14 @@ import com.flashlearn.repository.ReviewProgressRepository;
 import com.flashlearn.repository.UserRepository;
 import com.flashlearn.service.DeckService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+
+import static com.flashlearn.config.CacheConfig.PUBLIC_DECK_CATEGORIES;
+import static com.flashlearn.config.CacheConfig.PUBLIC_DECKS;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -53,10 +57,13 @@ public class DeckServiceImpl implements DeckService {
     }
 
     /**
-     * Возвращает публичные колоды с опциональным поиском по тексту
+     * Возвращает публичные колоды с опциональным поиском по тексту.
+     * Результат кешируется на 10 минут по параметрам запроса.
      */
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = PUBLIC_DECKS,
+            key = "#categoryName + ':' + #q + ':' + #pageable.pageNumber + ':' + #pageable.pageSize + ':' + #pageable.sort.toString()")
     public PageResponse<DeckResponse> getPublicDecks(String categoryName, String q, Pageable pageable) {
         String search = StringUtils.hasText(q) ? q.trim() : null;
         String category = StringUtils.hasText(categoryName) ? categoryName.trim() : null;
@@ -67,6 +74,7 @@ public class DeckServiceImpl implements DeckService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = PUBLIC_DECK_CATEGORIES)
     public java.util.List<String> getPublicDeckCategories() {
         return deckRepository.findDistinctCategoryNamesInPublicDecks();
     }
