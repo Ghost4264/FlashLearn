@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import { isAxiosError } from 'axios'
 import { api } from '../lib/api'
 import { useAuthStore } from '../store/authStore'
 import type { Category, Deck, PageResponse } from '../types/api'
@@ -182,7 +183,11 @@ export function DecksPage() {
     try {
       await api.post(`/api/decks/${deckId}/clone`)
       await Promise.all([loadMyDecks(myPage, filterCategoryId, searchQ), loadDueCount()])
-    } catch {
+    } catch (error: unknown) {
+      if (isAxiosError(error) && typeof error.response?.data?.detail === 'string') {
+        setError(error.response.data.detail)
+        return
+      }
       setError('Не удалось клонировать колоду')
     }
   }
