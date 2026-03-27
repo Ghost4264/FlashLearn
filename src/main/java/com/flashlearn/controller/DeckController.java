@@ -63,8 +63,10 @@ public class DeckController {
     public ResponseEntity<PageResponse<DeckResponse>> getPublicDecks(
             @RequestParam(required = false) String categoryName,
             @RequestParam(required = false) String q,
-            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(deckService.getPublicDecks(categoryName, q, pageable));
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
+            @AuthenticationPrincipal User user) {
+        Long viewerUserId = user != null ? user.getId() : null;
+        return ResponseEntity.ok(deckService.getPublicDecks(categoryName, q, pageable, viewerUserId));
     }
 
     @Operation(summary = "Категории публичных колод")
