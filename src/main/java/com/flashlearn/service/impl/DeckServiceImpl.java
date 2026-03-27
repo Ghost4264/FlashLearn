@@ -164,6 +164,9 @@ public class DeckServiceImpl implements DeckService {
         if (!source.isPublic()) {
             throw new AccessDeniedException("Клонировать можно только публичные колоды");
         }
+        if (deckRepository.existsByUserIdAndClonedFromId(userId, source.getId())) {
+            throw new AccessDeniedException("Эта публичная колода уже есть в ваших колодах");
+        }
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> ResourceNotFoundException.of("Пользователь", userId));
@@ -173,6 +176,7 @@ public class DeckServiceImpl implements DeckService {
                 .title(source.getTitle())
                 .description(source.getDescription())
                 .isPublic(false)
+                .clonedFromId(source.getId())
                 .category(resolveOrCreateCategoryByName(
                         user,
                         source.getCategory() != null ? source.getCategory().getName() : "Разное"
