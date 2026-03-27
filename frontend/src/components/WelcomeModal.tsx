@@ -23,7 +23,7 @@ export function WelcomeModal() {
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id="welcome-modal-title" className="text-lg font-semibold text-slate-900">
-          Рады видень вас
+          Рады видеть вас
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-slate-600">
           Короткие повторения вовремя держат в памяти лучше, чем редкие долгие зубрёжки.
