@@ -7,6 +7,7 @@ import type { AuthResponse } from '../types/api'
 export function LoginPage() {
   const navigate = useNavigate()
   const setTokens = useAuthStore((state) => state.setTokens)
+  const requestWelcomeAfterLogin = useAuthStore((state) => state.requestWelcomeAfterLogin)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -18,6 +19,7 @@ export function LoginPage() {
     try {
       const { data } = await api.post<AuthResponse>('/api/auth/login', { email, password })
       setTokens(data.accessToken, data.refreshToken)
+      requestWelcomeAfterLogin()
       navigate('/decks')
     } catch {
       setError('Неверный email или пароль')

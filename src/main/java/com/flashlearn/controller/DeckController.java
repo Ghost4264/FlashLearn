@@ -16,7 +16,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -87,6 +89,18 @@ public class DeckController {
             @Parameter(description = "ID колоды") @PathVariable Long id,
             @AuthenticationPrincipal User user) {
         return ResponseEntity.ok(deckService.getById(id, user.getId()));
+    }
+
+    @Operation(summary = "Экспорт личной колоды в CSV", description = "Только для непубличных колод владельца; UTF-8 с BOM")
+    @GetMapping("/{id}/export/csv")
+    public ResponseEntity<byte[]> exportPersonalDeckCsv(
+            @Parameter(description = "ID колоды") @PathVariable Long id,
+            @AuthenticationPrincipal User user) {
+        byte[] bytes = deckService.exportPersonalDeckCsv(id, user.getId());
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"deck-" + id + ".csv\"")
+                .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
+                .body(bytes);
     }
 
     /**

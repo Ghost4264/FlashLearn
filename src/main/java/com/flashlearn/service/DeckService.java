@@ -46,4 +46,9 @@ public interface DeckService {
      * Клонировать публичную колоду — создаёт копию колоды и всех карточек для пользователя
      */
     DeckResponse clone(Long deckId, Long userId);
+
+    /**
+     * Экспорт личной (непубличной) колоды владельца в CSV UTF-8 с BOM для импорта в другом месте
+     */
+    byte[] exportPersonalDeckCsv(Long deckId, Long userId);
 }

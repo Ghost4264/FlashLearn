@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../lib/api'
 import { useAuthStore } from '../store/authStore'
+import { toast } from '../store/toastStore'
 import type { StudySettings, UserProfile } from '../types/api'
 
 export function ProfilePage() {
@@ -10,11 +11,10 @@ export function ProfilePage() {
 
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
 
   const [name, setName] = useState('')
   const [nameSaving, setNameSaving] = useState(false)
-  const [nameSuccess, setNameSuccess] = useState(false)
-  const [nameError, setNameError] = useState<string | null>(null)
 
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
@@ -27,37 +27,42 @@ export function ProfilePage() {
     intervalModifier: 1.0,
   })
   const [studySaving, setStudySaving] = useState(false)
-  const [studySuccess, setStudySuccess] = useState(false)
-  const [studyError, setStudyError] = useState<string | null>(null)
+
+  const loadProfile = useCallback(async () => {
+    setLoading(true)
+    setLoadError(null)
+    try {
+      const { data } = await api.get<UserProfile>('/api/users/me')
+      setProfile(data)
+      setName(data.name ?? '')
+      const settingsRes = await api.get<StudySettings>('/api/users/me/study-settings')
+      setStudySettings(settingsRes.data)
+    } catch {
+      setLoadError('Не удалось загрузить профиль. Проверьте соединение и попробуйте снова.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
-    void (async () => {
-      try {
-        const { data } = await api.get<UserProfile>('/api/users/me')
-        setProfile(data)
-        setName(data.name ?? '')
-        const settingsRes = await api.get<StudySettings>('/api/users/me/study-settings')
-        setStudySettings(settingsRes.data)
-      } catch {
-      } finally {
-        setLoading(false)
-      }
-    })()
-  }, [])
+    void loadProfile()
+  }, [loadProfile])
+
+  const handleLogout = (): void => {
+    clearTokens()
+    navigate('/')
+  }
 
   const handleUpdateName = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim()) return
     setNameSaving(true)
-    setNameError(null)
-    setNameSuccess(false)
     try {
       const { data } = await api.put<UserProfile>('/api/users/me', { name: name.trim() })
       setProfile(data)
-      setNameSuccess(true)
-      setTimeout(() => setNameSuccess(false), 3000)
+      toast.success('Имя сохранено')
     } catch {
-      setNameError('Не удалось обновить имя')
+      toast.error('Не удалось обновить имя')
     } finally {
       setNameSaving(false)
     }
@@ -73,8 +78,9 @@ export function ProfilePage() {
       setCurrentPassword('')
       setNewPassword('')
       setPwSuccess(true)
-      setTimeout(() => setPwSuccess(false), 3000)
+      window.setTimeout(() => setPwSuccess(false), 3000)
       clearTokens()
+      navigate('/')
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status
       setPwError(status === 400 ? 'Неверный текущий пароль или слишком короткий новый (мин. 8 символов)' : 'Не удалось сменить пароль')
@@ -86,8 +92,6 @@ export function ProfilePage() {
   const handleSaveStudySettings = async (e: React.FormEvent) => {
     e.preventDefault()
     setStudySaving(true)
-    setStudyError(null)
-    setStudySuccess(false)
     try {
       const payload: StudySettings = {
         newCardsPerSession: Number(studySettings.newCardsPerSession),
@@ -95,10 +99,9 @@ export function ProfilePage() {
       }
       const { data } = await api.put<StudySettings>('/api/users/me/study-settings', payload)
       setStudySettings(data)
-      setStudySuccess(true)
-      setTimeout(() => setStudySuccess(false), 3000)
+      toast.success('Настройки повторений сохранены')
     } catch {
-      setStudyError('Не удалось сохранить настройки повторений')
+      toast.error('Не удалось сохранить настройки повторений')
     } finally {
       setStudySaving(false)
     }
@@ -112,59 +115,92 @@ export function ProfilePage() {
     )
   }
 
+  if (loadError) {
+    return (
+      <div className="mx-auto max-w-lg px-4 py-10 text-center">
+        <p className="text-slate-700">{loadError}</p>
+        <button
+          type="button"
+          className="mt-4 rounded-lg bg-slate-900 px-4 py-2 text-sm font-medium text-white hover:bg-slate-800"
+          onClick={() => void loadProfile()}
+        >
+          Повторить
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div className="mx-auto max-w-lg px-4 py-6">
-      <div className="mb-6">
-        <button
-          className="mb-1 text-sm text-slate-500 hover:text-slate-700"
-          onClick={() => navigate('/decks')}
-        >
-          ← Мои колоды
-        </button>
-        <h1 className="text-2xl font-semibold">Профиль</h1>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold sm:text-2xl">Профиль</h1>
+          <p className="mt-0.5 text-xs text-slate-500">Аккаунт, безопасность и настройки обучения</p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+            onClick={() => navigate('/decks')}
+          >
+            Мои колоды
+          </button>
+          <button
+            type="button"
+            className="rounded-lg border border-slate-300 px-3 py-1.5 text-sm hover:bg-slate-50"
+            onClick={handleLogout}
+          >
+            Выйти
+          </button>
+        </div>
       </div>
 
-      <div className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <section className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <h2 className="mb-3 text-sm font-medium text-slate-800">Аккаунт</h2>
         <p className="text-sm text-slate-500">Email</p>
         <p className="font-medium">{profile?.email}</p>
-        {profile?.name ? (
-          <>
-            <p className="mt-2 text-sm text-slate-500">Имя</p>
-            <p className="font-medium">{profile.name}</p>
-          </>
-        ) : null}
         <p className="mt-2 text-xs text-slate-400">
           Аккаунт создан:{' '}
           {profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString('ru-RU') : '—'}
         </p>
         {profile?.role === 'ADMIN' ? (
-          <button
-            className="mt-3 rounded bg-slate-900 px-3 py-2 text-xs text-white"
-            onClick={() => navigate('/admin')}
-          >
-            Открыть админ-панель
-          </button>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900">
+              Администратор
+            </span>
+            <button
+              type="button"
+              className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs text-white hover:bg-slate-800"
+              onClick={() => navigate('/admin')}
+            >
+              Админ-панель
+            </button>
+          </div>
         ) : null}
-      </div>
+      </section>
 
       <form
         onSubmit={(e) => void handleUpdateName(e)}
         className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
       >
-        <p className="mb-3 text-sm font-medium text-slate-700">Изменить имя</p>
+        <h2 className="mb-3 text-sm font-medium text-slate-800">Имя</h2>
+        <label htmlFor="profile-name" className="sr-only">
+          Отображаемое имя
+        </label>
         <input
-          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-          placeholder="Ваше имя"
+          id="profile-name"
+          name="name"
+          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-400/30"
+          placeholder="Как к вам обращаться"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          autoComplete="name"
           required
         />
-        {nameError ? <p className="mt-2 text-xs text-red-600">{nameError}</p> : null}
-        {nameSuccess ? <p className="mt-2 text-xs text-green-600">Имя обновлено</p> : null}
         <button
           type="submit"
           disabled={nameSaving}
-          className="mt-3 w-full rounded-lg bg-slate-900 py-2 text-sm font-medium text-white disabled:opacity-50"
+          className="mt-3 w-full rounded-lg bg-slate-900 py-2 text-sm font-medium text-white hover:bg-slate-800 disabled:opacity-50 sm:w-auto sm:px-6"
         >
           {nameSaving ? 'Сохраняем...' : 'Сохранить'}
         </button>
@@ -174,32 +210,47 @@ export function ProfilePage() {
         onSubmit={(e) => void handleChangePassword(e)}
         className="mb-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
       >
-        <p className="mb-3 text-sm font-medium text-slate-700">Сменить пароль</p>
-        <div className="space-y-2">
-          <input
-            type="password"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-            placeholder="Текущий пароль"
-            value={currentPassword}
-            onChange={(e) => setCurrentPassword(e.target.value)}
-            required
-          />
-          <input
-            type="password"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
-            placeholder="Новый пароль (мин. 8 символов)"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            required
-            minLength={8}
-          />
+        <h2 className="mb-1 text-sm font-medium text-slate-800">Безопасность</h2>
+        <p className="mb-3 text-xs text-slate-500">Смена пароля завершит текущую сессию — нужно будет войти снова.</p>
+        <div className="space-y-3">
+          <div>
+            <label htmlFor="profile-current-password" className="mb-1 block text-xs font-medium text-slate-600">
+              Текущий пароль
+            </label>
+            <input
+              id="profile-current-password"
+              type="password"
+              name="current-password"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-400/30"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+            />
+          </div>
+          <div>
+            <label htmlFor="profile-new-password" className="mb-1 block text-xs font-medium text-slate-600">
+              Новый пароль (мин. 8 символов)
+            </label>
+            <input
+              id="profile-new-password"
+              type="password"
+              name="new-password"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-400/30"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              autoComplete="new-password"
+              required
+              minLength={8}
+            />
+          </div>
         </div>
         {pwError ? <p className="mt-2 text-xs text-red-600">{pwError}</p> : null}
-        {pwSuccess ? <p className="mt-2 text-xs text-green-600">Пароль изменён, выполняется выход...</p> : null}
+        {pwSuccess ? <p className="mt-2 text-xs text-green-600">Пароль изменён, выход...</p> : null}
         <button
           type="submit"
           disabled={pwSaving}
-          className="mt-3 w-full rounded-lg bg-red-600 py-2 text-sm font-medium text-white disabled:opacity-50"
+          className="mt-3 w-full rounded-lg border border-slate-300 bg-white py-2 text-sm font-medium text-slate-900 hover:bg-slate-50 disabled:opacity-50 sm:w-auto sm:px-6"
         >
           {pwSaving ? 'Меняем...' : 'Сменить пароль'}
         </button>
@@ -210,31 +261,40 @@ export function ProfilePage() {
         onSubmit={(e) => void handleSaveStudySettings(e)}
         className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
       >
-        <p className="mb-3 text-sm font-medium text-slate-700">Настройки повторений</p>
+        <h2 className="mb-1 text-sm font-medium text-slate-800">Обучение</h2>
+        <p className="mb-3 text-xs text-slate-500">
+          Влияют на режим повторений: сколько новых карточек за раз и насколько «растягивать» интервалы.
+        </p>
         <div className="space-y-3">
-          <label className="block">
-            <span className="mb-1 block text-xs text-slate-500">Новых карточек за сессию (1-100)</span>
+          <div>
+            <label htmlFor="profile-new-cards" className="mb-1 block text-xs font-medium text-slate-600">
+              Новых карточек за сессию (1–100)
+            </label>
             <input
+              id="profile-new-cards"
               type="number"
               min={1}
               max={100}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-400/30"
               value={studySettings.newCardsPerSession}
               onChange={(e) =>
                 setStudySettings((prev) => ({ ...prev, newCardsPerSession: Number(e.target.value || 1) }))
               }
               required
             />
-          </label>
+          </div>
 
-          <label className="block">
-            <span className="mb-1 block text-xs text-slate-500">Модификатор интервалов (0.5-2.0)</span>
+          <div>
+            <label htmlFor="profile-interval-mod" className="mb-1 block text-xs font-medium text-slate-600">
+              Модификатор интервалов (0.5–2.0)
+            </label>
             <input
+              id="profile-interval-mod"
               type="number"
               min={0.5}
               max={2.0}
               step={0.1}
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-slate-500 focus:outline-none focus:ring-2 focus:ring-slate-400/30"
               value={studySettings.intervalModifier}
               onChange={(e) =>
                 setStudySettings((prev) => ({ ...prev, intervalModifier: Number(e.target.value || 1) }))
@@ -242,17 +302,15 @@ export function ProfilePage() {
               required
             />
             <p className="mt-1 text-xs text-slate-400">Меньше 1.0 — чаще повторения, больше 1.0 — реже.</p>
-          </label>
+          </div>
         </div>
 
-        {studyError ? <p className="mt-2 text-xs text-red-600">{studyError}</p> : null}
-        {studySuccess ? <p className="mt-2 text-xs text-green-600">Настройки сохранены</p> : null}
         <button
           type="submit"
           disabled={studySaving}
-          className="mt-3 w-full rounded-lg bg-emerald-600 py-2 text-sm font-medium text-white disabled:opacity-50"
+          className="mt-3 w-full rounded-lg bg-emerald-600 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50 sm:w-auto sm:px-6"
         >
-          {studySaving ? 'Сохраняем...' : 'Сохранить настройки повторений'}
+          {studySaving ? 'Сохраняем...' : 'Сохранить настройки'}
         </button>
       </form>
     </div>

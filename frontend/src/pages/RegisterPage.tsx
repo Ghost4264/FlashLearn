@@ -7,6 +7,7 @@ import type { AuthResponse } from '../types/api'
 export function RegisterPage() {
   const navigate = useNavigate()
   const setTokens = useAuthStore((state) => state.setTokens)
+  const requestWelcomeAfterLogin = useAuthStore((state) => state.requestWelcomeAfterLogin)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -27,6 +28,7 @@ export function RegisterPage() {
     try {
       const { data } = await api.post<AuthResponse>('/api/auth/register', { name, email, password })
       setTokens(data.accessToken, data.refreshToken)
+      requestWelcomeAfterLogin()
       navigate('/decks')
     } catch {
       setError('Не удалось зарегистрироваться. Проверьте данные.')

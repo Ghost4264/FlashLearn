@@ -3,6 +3,7 @@ package com.flashlearn.service.impl;
 import com.flashlearn.dto.request.DeckRequest;
 import com.flashlearn.dto.response.DeckResponse;
 import com.flashlearn.dto.response.PageResponse;
+import com.flashlearn.entity.Card;
 import com.flashlearn.entity.Category;
 import com.flashlearn.entity.Deck;
 import com.flashlearn.entity.User;
@@ -16,6 +17,7 @@ import com.flashlearn.repository.ReviewProgressRepository;
 import com.flashlearn.repository.UserRepository;
 import com.flashlearn.service.DeckService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -25,6 +27,7 @@ import org.springframework.util.StringUtils;
 import static com.flashlearn.config.CacheConfig.PUBLIC_DECK_CATEGORIES;
 import static com.flashlearn.config.CacheConfig.PUBLIC_DECKS;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -146,6 +149,7 @@ public class DeckServiceImpl implements DeckService {
      */
     @Override
     @Transactional
+    @CacheEvict(value = PUBLIC_DECKS, allEntries = true)
     public void delete(Long deckId, Long userId) {
         Deck deck = findOwnedDeck(deckId, userId);
         if (deck.isPublic()) {
@@ -159,6 +163,7 @@ public class DeckServiceImpl implements DeckService {
      */
     @Override
     @Transactional
+    @CacheEvict(value = PUBLIC_DECKS, allEntries = true)
     public DeckResponse clone(Long deckId, Long userId) {
         Deck source = findDeck(deckId);
         if (!source.isPublic()) {
@@ -196,6 +201,45 @@ public class DeckServiceImpl implements DeckService {
         cardRepository.saveAll(copiedCards);
 
         return toResponse(copy, userId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] exportPersonalDeckCsv(Long deckId, Long userId) {
+        Deck deck = findOwnedDeck(deckId, userId);
+        if (deck.isPublic()) {
+            throw new AccessDeniedException("Экспорт в CSV доступен только для личных колод, не для публичных");
+        }
+        List<Card> cards = cardRepository.findAllByDeckIdOrderByPosition(deckId);
+        StringBuilder sb = new StringBuilder();
+        sb.append("title;").append(csvCell(deck.getTitle())).append('\n');
+        sb.append("description;").append(csvCell(deck.getDescription() != null ? deck.getDescription() : "")).append('\n');
+        String categoryName = deck.getCategory() != null ? deck.getCategory().getName() : "";
+        sb.append("category;").append(csvCell(categoryName)).append('\n');
+        sb.append('\n');
+        sb.append("front;back;hint").append('\n');
+        for (Card c : cards) {
+            sb.append(csvCell(c.getFront())).append(';')
+                    .append(csvCell(c.getBack())).append(';')
+                    .append(csvCell(c.getHint() != null ? c.getHint() : "")).append('\n');
+        }
+        byte[] utf8 = sb.toString().getBytes(StandardCharsets.UTF_8);
+        byte[] bom = new byte[]{(byte) 0xEF, (byte) 0xBB, (byte) 0xBF};
+        byte[] out = new byte[bom.length + utf8.length];
+        System.arraycopy(bom, 0, out, 0, bom.length);
+        System.arraycopy(utf8, 0, out, bom.length, utf8.length);
+        return out;
+    }
+
+    private static String csvCell(String s) {
+        if (s == null) {
+            return "";
+        }
+        String t = s.replace("\r\n", "\n").replace("\r", "\n");
+        if (t.contains(";") || t.contains("\n") || t.contains("\"")) {
+            return "\"" + t.replace("\"", "\"\"") + "\"";
+        }
+        return t;
     }
 
     private Deck findDeck(Long deckId) {

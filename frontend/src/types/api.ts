@@ -18,6 +18,7 @@ export type Deck = {
   public: boolean
   categoryId: number | null
   categoryName: string | null
+  alreadyCloned?: boolean
 }
 
 export type PageResponse<T> = {
@@ -49,6 +50,12 @@ export type ReviewResponse = {
   intervalDays: number
   easeFactor: number
   nextReviewAt: string
+}
+
+export type ReviewStats = {
+  reviewedToday: number
+  reviewedThisWeek: number
+  streakDays: number
 }
 
 export type UserProfile = {
