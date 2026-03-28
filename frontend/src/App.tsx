@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
+import { IdleSessionWatcher } from './components/IdleSessionWatcher'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { useAuthStore } from './store/authStore'
 import { DecksPage } from './pages/DecksPage'
@@ -14,19 +15,22 @@ function App() {
   const accessToken = useAuthStore((state) => state.accessToken)
 
   return (
-    <Routes>
-      <Route path="/" element={accessToken ? <Navigate to="/decks" replace /> : <HomePage />} />
-      <Route path="/login" element={accessToken ? <Navigate to="/decks" replace /> : <LoginPage />} />
-      <Route path="/register" element={accessToken ? <Navigate to="/decks" replace /> : <RegisterPage />} />
-      <Route element={<ProtectedRoute />}>
-        <Route path="/decks" element={<DecksPage />} />
-        <Route path="/decks/:id" element={<DeckDetailPage />} />
-        <Route path="/study" element={<StudyPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        <Route path="/admin" element={<AdminPage />} />
-      </Route>
-      <Route path="*" element={<Navigate to={accessToken ? '/decks' : '/'} replace />} />
-    </Routes>
+    <>
+      <IdleSessionWatcher />
+      <Routes>
+        <Route path="/" element={accessToken ? <Navigate to="/decks" replace /> : <HomePage />} />
+        <Route path="/login" element={accessToken ? <Navigate to="/decks" replace /> : <LoginPage />} />
+        <Route path="/register" element={accessToken ? <Navigate to="/decks" replace /> : <RegisterPage />} />
+        <Route element={<ProtectedRoute />}>
+          <Route path="/decks" element={<DecksPage />} />
+          <Route path="/decks/:id" element={<DeckDetailPage />} />
+          <Route path="/study" element={<StudyPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/admin" element={<AdminPage />} />
+        </Route>
+        <Route path="*" element={<Navigate to={accessToken ? '/decks' : '/'} replace />} />
+      </Routes>
+    </>
   )
 }
 
