@@ -13,6 +13,7 @@ public class SpaController {
             "/",
             "/login",
             "/register",
+            "/faq",
             "/study",
             "/profile",
             "/admin",
