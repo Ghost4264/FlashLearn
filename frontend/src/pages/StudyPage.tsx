@@ -1,7 +1,9 @@
-import { useEffect, useCallback, useState } from 'react'
+import { useEffect, useCallback, useState, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../lib/api'
 import type { StudyCard } from '../types/api'
+
+const CARD_TIME_LIMIT_MS = 10_000
 
 type Quality = 1 | 3 | 5
 
@@ -24,6 +26,9 @@ export function StudyPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [reviewed, setReviewed] = useState(0)
+  const [timeLeftMs, setTimeLeftMs] = useState(CARD_TIME_LIMIT_MS)
+  const ratingInFlightRef = useRef(false)
+  const handleRateRef = useRef<(quality: Quality) => void>(() => {})
 
   useEffect(() => {
     void (async () => {
@@ -47,7 +52,8 @@ export function StudyPage() {
   }, [isFlipped])
 
   const handleRate = useCallback(async (quality: Quality) => {
-    if (!currentCard || submitting) return
+    if (!currentCard || submitting || ratingInFlightRef.current) return
+    ratingInFlightRef.current = true
     setSubmitting(true)
     try {
       await api.post('/api/review', { cardId: currentCard.id, quality })
@@ -58,8 +64,31 @@ export function StudyPage() {
       setError('Не удалось сохранить оценку')
     } finally {
       setSubmitting(false)
+      ratingInFlightRef.current = false
     }
   }, [currentCard, submitting])
+
+  handleRateRef.current = (quality: Quality) => {
+    void handleRate(quality)
+  }
+
+  const cardTimerKey = currentCard ? `${currentIndex}-${currentCard.id}` : ''
+
+  useEffect(() => {
+    if (loading || isDone || !currentCard) return
+    ratingInFlightRef.current = false
+    setTimeLeftMs(CARD_TIME_LIMIT_MS)
+    const deadline = Date.now() + CARD_TIME_LIMIT_MS
+    const id = window.setInterval(() => {
+      if (ratingInFlightRef.current) return
+      const left = Math.max(0, deadline - Date.now())
+      setTimeLeftMs(left)
+      if (left <= 0) {
+        handleRateRef.current(1)
+      }
+    }, 100)
+    return () => window.clearInterval(id)
+  }, [cardTimerKey, loading, isDone, currentCard])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -136,9 +165,28 @@ export function StudyPage() {
         >
           ← Назад
         </button>
-        <span className="text-sm text-slate-500">
-          {currentIndex + 1} / {cards.length}
-        </span>
+        <div className="flex flex-col items-end gap-0.5 text-right">
+          <span className="text-sm text-slate-500">
+            {currentIndex + 1} / {cards.length}
+          </span>
+          <span
+            className={`text-xs font-medium tabular-nums ${
+              timeLeftMs <= 3_000 ? 'text-amber-600' : 'text-slate-400'
+            }`}
+            title="На одну карточку — 10 секунд; по истечении ставится «Не знаю»"
+          >
+            {Math.ceil(timeLeftMs / 1000)} с
+          </span>
+        </div>
+      </div>
+
+      <div className="mb-2 h-1 w-full max-w-lg overflow-hidden rounded-full bg-amber-100">
+        <div
+          className={`h-full rounded-full transition-[width] duration-100 ease-linear ${
+            timeLeftMs <= 3_000 ? 'bg-amber-500' : 'bg-slate-700'
+          }`}
+          style={{ width: `${(timeLeftMs / CARD_TIME_LIMIT_MS) * 100}%` }}
+        />
       </div>
 
       <div className="mb-6 h-1.5 w-full max-w-lg overflow-hidden rounded-full bg-slate-200">
@@ -201,7 +249,9 @@ export function StudyPage() {
             >
               Показать ответ
             </button>
-            <p className="mt-2 text-center text-xs text-slate-400">Space / Enter</p>
+            <p className="mt-2 text-center text-xs text-slate-400">
+              Space / Enter · 10 с на карточку
+            </p>
           </>
         ) : (
           <>
@@ -219,9 +269,12 @@ export function StudyPage() {
             </div>
             <div className="mt-2 grid grid-cols-3 gap-3 text-center">
               {(['1', '2', '3'] as const).map((key) => (
-                <p key={key} className="text-xs text-slate-400">{key}</p>
+                <p key={key} className="text-xs text-slate-400">
+                  {key}
+                </p>
               ))}
             </div>
+            <p className="mt-1 text-center text-xs text-slate-400">10 с на карточку</p>
           </>
         )}
       </div>

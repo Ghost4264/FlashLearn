@@ -18,6 +18,8 @@ public class SpaController {
             "/profile",
             "/admin",
             "/decks",
+            "/decks/new",
+            "/library",
             "/decks/{id:[0-9]+}"
     })
     public String spa() {

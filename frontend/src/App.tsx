@@ -11,6 +11,8 @@ import { ProfilePage } from './pages/ProfilePage'
 import { AdminPage } from './pages/AdminPage'
 import { HomePage } from './pages/HomePage'
 import { FaqPage } from './pages/FaqPage'
+import { DeckNewPage } from './pages/DeckNewPage'
+import { LibraryPage } from './pages/LibraryPage'
 
 function App() {
   const accessToken = useAuthStore((state) => state.accessToken)
@@ -25,7 +27,9 @@ function App() {
         <Route path="/faq" element={<FaqPage />} />
         <Route element={<ProtectedRoute />}>
           <Route path="/decks" element={<DecksPage />} />
+          <Route path="/decks/new" element={<DeckNewPage />} />
           <Route path="/decks/:id" element={<DeckDetailPage />} />
+          <Route path="/library" element={<LibraryPage />} />
           <Route path="/study" element={<StudyPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/admin" element={<AdminPage />} />
