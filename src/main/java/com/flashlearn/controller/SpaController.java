@@ -13,10 +13,13 @@ public class SpaController {
             "/",
             "/login",
             "/register",
+            "/faq",
             "/study",
             "/profile",
             "/admin",
             "/decks",
+            "/decks/new",
+            "/library",
             "/decks/{id:[0-9]+}"
     })
     public String spa() {

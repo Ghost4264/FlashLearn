@@ -4,7 +4,7 @@ export function HomePage() {
   const navigate = useNavigate()
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-slate-950">
+    <div className="relative min-h-screen overflow-x-hidden bg-slate-950">
       <img
         src="https://images.unsplash.com/photo-1456513080510-7bf3a84b82f8?auto=format&fit=crop&w=1600&q=80"
         alt="Книги и обучение"
@@ -12,7 +12,7 @@ export function HomePage() {
       />
       <div className="absolute inset-0 bg-gradient-to-b from-slate-950/70 via-slate-900/70 to-slate-950" />
 
-      <div className="relative mx-auto flex min-h-screen max-w-5xl flex-col items-center justify-center px-6 pb-16 text-center">
+      <div className="relative mx-auto flex min-h-screen max-w-5xl flex-col items-center justify-start px-6 pb-28 pt-16 text-center md:pt-24">
         <p className="mb-3 text-xs uppercase tracking-[0.2em] text-slate-300">FlashLearn</p>
         <h1 className="max-w-3xl text-4xl font-bold text-white md:text-5xl">
           Запоминай быстрее с интервальными повторениями
@@ -34,9 +34,15 @@ export function HomePage() {
           >
             Начать бесплатно
           </Link>
+          <Link
+            to="/faq"
+            className="rounded-xl border border-amber-400/90 bg-amber-400 px-5 py-3 text-sm font-semibold text-amber-950 shadow-md transition hover:border-amber-300 hover:bg-amber-300 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-amber-300/80"
+          >
+            FAQ
+          </Link>
         </div>
 
-        <div className="mt-8 grid w-full max-w-3xl grid-cols-1 gap-3 sm:grid-cols-3">
+        <div className="mt-10 grid w-full max-w-3xl grid-cols-1 gap-3 sm:grid-cols-3">
           <div className="rounded-xl border border-white/15 bg-white/10 px-4 py-3">
             <p className="text-sm font-semibold text-white">SM-2 алгоритм</p>
             <p className="mt-1 text-xs text-slate-200">Повторяй карточки в нужный момент.</p>
@@ -51,8 +57,7 @@ export function HomePage() {
           </div>
         </div>
 
-        <p className="mt-4 text-xs text-slate-300">Open-source проект с активной разработкой на GitHub.</p>
-
+        <p className="mt-12 text-xs text-slate-300">Open-source проект с активной разработкой на GitHub.</p>
       </div>
 
       <div className="absolute inset-x-0 bottom-0 border-t border-white/10 bg-slate-950/65">
