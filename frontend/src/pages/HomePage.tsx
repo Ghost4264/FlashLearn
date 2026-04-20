@@ -52,8 +52,8 @@ export function HomePage() {
             <p className="mt-1 text-xs text-slate-200">Выбирай готовые темы и учись быстрее.</p>
           </div>
           <div className="rounded-xl border border-white/15 bg-white/10 px-4 py-3">
-            <p className="text-sm font-semibold text-white">CSV импорт</p>
-            <p className="mt-1 text-xs text-slate-200">Загружай свои колоды в пару кликов.</p>
+            <p className="text-sm font-semibold text-white">CSV / AI импорт</p>
+            <p className="mt-1 text-xs text-slate-200">Загружай свои колоды в пару кликов или генерируй карточки через AI.</p>
           </div>
         </div>
 
