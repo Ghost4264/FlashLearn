@@ -112,4 +112,12 @@ public class GlobalExceptionHandler {
         problem.setProperty("errors", errors);
         return problem;
     }
+
+    /**
+     * Ошибки интеграции с AI-провайдером
+     */
+    @ExceptionHandler(AiIntegrationException.class)
+    public ProblemDetail handleAiIntegration(AiIntegrationException ex) {
+        return ProblemDetail.forStatusAndDetail(ex.getStatus(), ex.getMessage());
+    }
 }

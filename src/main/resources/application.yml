@@ -55,6 +55,20 @@ app:
     refresh-token-cleanup-cron: ${REFRESH_TOKEN_CLEANUP_CRON:0 0 * * * *}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:5173,http://127.0.0.1:5173,http://127.0.0.1:5174}
+  ai:
+    ollama:
+      enabled: ${AI_OLLAMA_ENABLED:false}
+      base-url: ${AI_OLLAMA_BASE_URL:http://localhost:11434}
+      model: ${AI_OLLAMA_MODEL:qwen2.5:7b-instruct}
+      timeout-seconds: ${AI_OLLAMA_TIMEOUT_SECONDS:60}
+      auth-token: ${AI_OLLAMA_AUTH_TOKEN:}
+    limits:
+      requests-per-minute: ${AI_REQUESTS_PER_MINUTE:10}
+      requests-per-day: ${AI_REQUESTS_PER_DAY:100}
+      min-seconds-between-requests: ${AI_MIN_SECONDS_BETWEEN_REQUESTS:3}
+  limits:
+    decks-created-per-day: ${DECKS_CREATED_PER_DAY:50}
+    cards-created-per-day: ${CARDS_CREATED_PER_DAY:1000}
 
 logging:
   level:

@@ -15,3 +15,8 @@ spring:
 
   flyway:
     enabled: false
+
+app:
+  ai:
+    ollama:
+      enabled: false

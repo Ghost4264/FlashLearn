@@ -86,3 +86,16 @@ export type AdminBulkDeckResponse = {
   decksCreated: number
   cardsCreated: number
 }
+
+export type AiCardDraft = {
+  front: string
+  back: string
+  hint: string | null
+  position: number
+}
+
+export type AiGenerateCardsResponse = {
+  provider: string
+  model: string
+  cards: AiCardDraft[]
+}

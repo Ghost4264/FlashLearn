@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 public interface DeckRepository extends JpaRepository<Deck, Long> {
@@ -69,4 +70,6 @@ public interface DeckRepository extends JpaRepository<Deck, Long> {
      */
     @Query("SELECT d.clonedFromId FROM Deck d WHERE d.user.id = :userId AND d.clonedFromId IS NOT NULL AND d.clonedFromId IN :publicDeckIds")
     List<Long> findClonedFromIdsByUserIdAndPublicDeckIds(@Param("userId") Long userId, @Param("publicDeckIds") List<Long> publicDeckIds);
+
+    long countByUserIdAndCreatedAtBetween(Long userId, LocalDateTime fromInclusive, LocalDateTime toExclusive);
 }

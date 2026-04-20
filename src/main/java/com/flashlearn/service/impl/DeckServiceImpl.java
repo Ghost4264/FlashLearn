@@ -20,6 +20,7 @@ import com.flashlearn.service.DeckService;
 import com.flashlearn.util.DeckCsvParser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Pageable;
@@ -50,6 +51,8 @@ import java.util.stream.Collectors;
 public class DeckServiceImpl implements DeckService {
 
     private static final String DEFAULT_IMPORT_CATEGORY = "Разное";
+    @Value("${app.limits.decks-created-per-day:50}")
+    private int decksCreatedPerDay;
 
     private final DeckRepository deckRepository;
     private final UserRepository userRepository;
@@ -124,6 +127,7 @@ public class DeckServiceImpl implements DeckService {
     @Override
     @Transactional
     public DeckResponse create(DeckRequest request, Long userId) {
+        ensureDeckCreateLimitNotExceeded(userId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> ResourceNotFoundException.of("Пользователь", userId));
 
@@ -180,6 +184,7 @@ public class DeckServiceImpl implements DeckService {
     @Transactional
     @CacheEvict(value = PUBLIC_DECKS, allEntries = true)
     public DeckResponse clone(Long deckId, Long userId) {
+        ensureDeckCreateLimitNotExceeded(userId);
         Deck source = findDeck(deckId);
         if (!source.isPublic()) {
             throw new AccessDeniedException("Клонировать можно только публичные колоды");
@@ -258,6 +263,7 @@ public class DeckServiceImpl implements DeckService {
     @Override
     @Transactional
     public DeckImportCsvResponse importPersonalDeckFromCsv(Long userId, MultipartFile file) {
+        ensureDeckCreateLimitNotExceeded(userId);
         if (file == null || file.isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "CSV файл обязателен");
         }
@@ -353,6 +359,18 @@ public class DeckServiceImpl implements DeckService {
                         .user(user)
                         .name(categoryName)
                         .build()));
+    }
+
+    private void ensureDeckCreateLimitNotExceeded(Long userId) {
+        LocalDateTime from = LocalDateTime.now().toLocalDate().atStartOfDay();
+        LocalDateTime to = from.plusDays(1);
+        long createdToday = deckRepository.countByUserIdAndCreatedAtBetween(userId, from, to);
+        if (createdToday >= decksCreatedPerDay) {
+            throw new ResponseStatusException(
+                    HttpStatus.TOO_MANY_REQUESTS,
+                    "Превышен суточный лимит на создание колод"
+            );
+        }
     }
 
     private DeckResponse toResponse(Deck deck, DeckCounts counts) {

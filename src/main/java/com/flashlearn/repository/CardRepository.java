@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 public interface CardRepository extends JpaRepository<Card, Long> {
@@ -85,6 +86,8 @@ public interface CardRepository extends JpaRepository<Card, Long> {
               )
             """)
     long countNewCardsByDeck(@Param("userId") Long userId, @Param("deckId") Long deckId);
+
+    long countByDeckUserIdAndCreatedAtBetween(Long userId, LocalDateTime fromInclusive, LocalDateTime toExclusive);
 
     /**
      * Количество новых карточек для списка колод (bulk)

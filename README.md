@@ -55,3 +55,30 @@ front;back;hint
 - **Backend:** Java 21, Spring Boot 3, Spring Security (JWT), Spring Data JPA, Flyway, PostgreSQL
 - **Frontend:** React, TypeScript, Vite, Tailwind, Zustand, Axios
 - **Инфра:** Docker Compose (PostgreSQL для локальной разработки)
+
+## AI (Ollama)
+
+Добавлен backend-эндпоинт для генерации карточек из текста:
+- `POST /api/ai/cards/generate`
+
+Пример тела запроса:
+```json
+{
+  "sourceText": "Ваш учебный текст / промпт / конспект",
+  "desiredCount": 10
+}
+```
+
+Нужные переменные окружения для локального/удалённого сервера:
+- `AI_OLLAMA_ENABLED` (`true|false`)
+- `AI_OLLAMA_BASE_URL` (например `http://localhost:11434` или внутренний URL)
+- `AI_OLLAMA_MODEL` (например `qwen2.5:7b-instruct`)
+- `AI_OLLAMA_TIMEOUT_SECONDS`
+- `AI_OLLAMA_AUTH_TOKEN` (опционально, если Ollama закрыт через reverse proxy)
+
+Лимиты безопасности (anti-abuse):
+- `AI_REQUESTS_PER_MINUTE` — лимит генераций AI в минуту на пользователя
+- `AI_REQUESTS_PER_DAY` — суточный лимит генераций AI на пользователя
+- `AI_MIN_SECONDS_BETWEEN_REQUESTS` — минимальная пауза между AI-запросами
+- `DECKS_CREATED_PER_DAY` — суточный лимит создания колод
+- `CARDS_CREATED_PER_DAY` — суточный лимит создания карточек
