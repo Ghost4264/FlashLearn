@@ -343,7 +343,7 @@ front;back;hint
             {aiPanelOpen ? (
               <div className="mt-3 rounded-md border border-emerald-200 bg-emerald-50/40 p-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <h4 className="text-sm font-medium text-emerald-900">Генерация карточек с AI</h4>
+                  <h4 className="text-sm font-medium text-emerald-900">Генерация карточек</h4>
                   {aiModel ? <span className="text-[11px] text-emerald-700">Модель: {aiModel}</span> : null}
                 </div>
                 <p className="mt-1 text-xs text-emerald-800/80">
